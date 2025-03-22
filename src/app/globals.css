@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+
+    --radius: 0.5rem
+    }
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.services-svg {
+    background-image: url('/services.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+.outline-black {
+    text-shadow: 
+      -1px -1px 0 #a8a8a8,  
+      1px -1px 0 #a8a8a8,   
+      1px 1px 0 #a8a8a8,    
+      -1px 1px 0 #a8a8a8;       
+  }
+
+.navbar-link {
+    @apply transition-all duration-300 whitespace-nowrap font-bold text-sm text-foreground hover:text-foregroundLighter;
+}
+
+.navbar-link-mobile {
+    @apply cursor-pointer px-4 py-3 hover:bg-secondary rounded-full font-medium;
+}
+
+.inner-navbar-link {
+    @apply cursor-pointer font-medium px-4 py-3 rounded-full hover:bg-secondary;
+}
+
+.grayShadow {
+    @apply shadow-2xl shadow-[#d8d8d8];
+}
+
+.btn {
+    @apply px-5 py-3 border border-secondary hover:border-accentLighter/30 transition-all duration-300 text-foreground rounded-full text-sm;
+}
+
+.btn-accent {
+    @apply px-5 py-3 bg-accent hover:bg-accentLighter transition-all duration-300 text-background rounded-full text-sm;
+}
+
+.btn-red {
+    @apply px-5 py-3 bg-red-500 hover:bg-red-800 transition-all duration-300 text-foreground rounded-full text-sm font-[600];
+}
+
+.input-field {
+    @apply bg-secondary/50 rounded-2xl px-4 py-6 font-[700] border border-secondary text-sm md:text-base;
+}
+
+.footer-heading {
+    @apply uppercase font-[800] text-accentLighter mb-3;
+}
+
+.footer-link {
+    @apply text-neutral-300 font-[500] hover:text-accent transition-all duration-300;
+}
+
+
+.footer-icon {
+    @apply border-2 border-accentLighter/30 hover:border-accentLighter w-12 h-12 flex items-center justify-center rounded-xl bg-secondary/50 text-accentLighter/90 hover:text-accentLighter transition-all duration-300;
+}
+
+.client-radius-1 {
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    transition: 0.3s all ease-in-out;
+}
+
+.client-radius-2 {
+    border-radius: 55% 45% 65% 35% / 33% 65% 35% 67%;
+}
+
+.client-radius-3 {
+    border-radius: 41% 59% 38% 62% / 70% 34% 66% 30%;
+}
+
+.client-radius-4 {
+    border-radius: 29% 71% 38% 62% / 25% 38% 62% 75%;
+}
+
+.client-radius:hover {
+    border-radius: 100%;
+}
+
+.text-gradient {
+    @apply bg-gradient-to-r from-accent to-accentLighter text-transparent bg-clip-text;
+}
+
+.vlog-order-bg {
+    background-image: url('/vlog.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat; 
+}
+
+.glass-bg {
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0px 10px 40px -6px rgba(0,0,0,0.2);
+    backdrop-filter: blur(5.8px);
+    -webkit-backdrop-filter: blur(5.8px);
+}
+  
