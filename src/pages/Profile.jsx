@@ -5,17 +5,17 @@ import Transition from "@/components/others/Transition";
 export default function Profile({ user, pointsOrders }) {
 	const now = new Date();
 
-	const activePackages = pointsOrders.filter((pkg) => {
+	const activePackages = (pointsOrders || []).filter((pkg) => {
 		const expires = new Date(pkg.created_at);
 		expires.setDate(expires.getDate() + pkg.lifespan);
 		return expires >= now;
-	});
-
-	const expiredPackages = pointsOrders.filter((pkg) => {
+	  });
+	  
+	  const expiredPackages = (pointsOrders || []).filter((pkg) => {
 		const expires = new Date(pkg.created_at);
 		expires.setDate(expires.getDate() + pkg.lifespan);
 		return expires < now;
-	});
+	  });
 
 	const totalActivePoints = (type) =>
 		activePackages.reduce((sum, p) => sum + (p[type] || 0), 0);
