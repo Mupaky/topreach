@@ -19,7 +19,7 @@ export default async function page({ params }) {
 		const { data: userData, error } = await supabase
 			.from("profiles")
 			.select("id")
-			.eq("email", user.email)
+			.eq("id", user.id)
 			.single();
 
 		if (error) {
@@ -38,7 +38,7 @@ export default async function page({ params }) {
 
 		if (
 			data.user != userData.id &&
-			user.email != "topreachstudio@gmail.com"
+			user.role != "admin"
 		) {
 			redirect("/home");
 		}

@@ -38,7 +38,7 @@ export default async function page({ params }) {
 
 		if (
 			data.user != userData.id &&
-			user.email != "topreachstudio@gmail.com"
+			user.role != "admin"
 		) {
 			redirect("/home");
 		}

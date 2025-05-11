@@ -20,11 +20,15 @@ export default async function Page() {
 		packages;
 
 	if (!session) {
+		console.log("❌ No session found. Redirecting to /");
 		redirect("/");
 	} else {
 		user = session.user;
 
-		if (user.email == "topreachstudio@gmail.com") {
+		if (user.role == "admin") {
+
+			console.log("🔐 Admin access granted");
+
 			const { data: vlogOrdersData, error: fetchErrorVlog } =
 				await supabase.from("vlogOrders").select();
 
@@ -71,8 +75,8 @@ export default async function Page() {
 			}
 
 			const { data: pointsData, error: fetchErrorPoints } = await supabase
-				.from("pointsOrders")
-				.select();
+				.from("pointsorders")
+				.select("*");
 
 			if (fetchErrorProfiles) {
 				throw new Error(
@@ -97,6 +101,9 @@ export default async function Page() {
 			pointsOrders = pointsData;
 			packages = packagesData;
 		} else {
+
+			console.log("👤 Regular user detected:", user.email);
+
 			const { data, error: fetchError } = await supabase
 				.from("profiles")
 				.select("id")
@@ -160,7 +167,7 @@ export default async function Page() {
 
 			const { data: pointsOrders, error: pointsFetchError } =
 				await supabase
-					.from("pointsOrders")
+					.from("pointsorders")
 					.select("id, created_at, price, status")
 					.eq("user", id);
 
@@ -183,7 +190,7 @@ export default async function Page() {
 	return (
 		<>
 			<Navbar />
-			{user.email == "topreachstudio@gmail.com" ? (
+			{user.role == "admin" ? (
 				<AdminDashboard
 					vlogOrdersData={vlogOrders}
 					tiktokOrdersData={tiktokOrders}

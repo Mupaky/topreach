@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import Heading from "@/components/others/Heading";
 import Transition from "@/components/others/Transition";
@@ -8,9 +8,26 @@ import VlogOrderForm from "@/components/forms/VlogOrderForm";
 import Button from "@/components/others/Button";
 
 export default function VlogOrder({ user }) {
-	let editingPoints;
+	const [editingPoints, setEditingPoints] = useState(0);
 
-	if (user) editingPoints = user.editingPoints;
+	useEffect(() => {
+		async function fetchActiveEditingPoints() {
+			try {
+				const res = await fetch(
+					`/api/activePoints?userId=${user.id}&type=editingPoints`
+				);
+				const data = await res.json();
+				setEditingPoints(data.total);
+			} catch (err) {
+				console.error("Error fetching active editing points:", err);
+				setEditingPoints(0);
+			}
+		}
+
+		if (user.id) {
+			fetchActiveEditingPoints();
+		}
+	}, [user.id]);
 
 	return (
 		<>
@@ -53,7 +70,8 @@ export default function VlogOrder({ user }) {
 								</div>
 
 								<VlogOrderForm
-									email={user.email}
+								 	email={user.email}
+									userId={user.id}
 									points={editingPoints}
 								/>
 							</div>

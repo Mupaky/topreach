@@ -13,19 +13,20 @@ export async function POST(req) {
 
     try {
         const result = await resend.emails.send({
-            from: `Top Reach <inquiry@topreachstudio.com>`,
+            from: "onboarding@resend.dev",
             to: [`${email}`],
             subject: "Получихме вашата поръчка на точков пакет!",
             react: PointsFeedbackTemplate({ name, editingPoints, designPoints, recordingPoints, price }),
         });
 
-
         if (result.error) {
+            console.error("📧 Email sending failed:", result.error);
             return NextResponse.json({ error: result.error }, { status: 500 });
         }
 
         return NextResponse.json(result);
     } catch (error) {
+        console.error("📧 Unexpected email error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

@@ -44,7 +44,7 @@ const formSchema = z.object({
 	additionalService: z.string(),
 });
 
-export default function ThumbnailOrderForm({ email, points }) {
+export default function ThumbnailOrderForm({ email, points, userId }) {
 	const [error, setError] = useState(null);
 	const [submitError, setSubmitError] = useState(null);
 	const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ export default function ThumbnailOrderForm({ email, points }) {
 			...values,
 			type: "thumbnail",
 			price: finalPrice,
-			email,
+			userId,
 		};
 
 		try {

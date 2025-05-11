@@ -16,7 +16,7 @@ import { useState } from "react";
 import { BeatLoader } from "react-spinners";
 import { useRouter } from "next/navigation";
 
-export default function BuyPointsCard({ price, points, email, name }) {
+export default function BuyPointsCard({ price, points, email, name, lifespan, userId }) {
 	const [submitError, setSubmitError] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
@@ -28,9 +28,12 @@ export default function BuyPointsCard({ price, points, email, name }) {
 			type: "points",
 			price: price,
 			email,
+			userId,
 			editingPoints: points.editingPoints,
 			designPoints: points.designPoints,
 			recordingPoints: points.recordingPoints,
+			lifespan,
+			status: "Активен",
 		};
 
 		try {
@@ -107,6 +110,7 @@ export default function BuyPointsCard({ price, points, email, name }) {
 								Видео заснемане - {points.recordingPoints} т.
 							</span>
 							<span>Дизайн - {points.designPoints} т.</span>
+							<span>Валидност на пакета: <span className="text-foreground font-medium">{lifespan} дни</span></span>
 						</span>
 
 						<span className="text-red-500">{submitError}</span>
@@ -168,6 +172,12 @@ export default function BuyPointsCard({ price, points, email, name }) {
 							Дизайн - {points.designPoints} т.
 						</p>
 					</div>
+
+					<p className="font-[500] flex items-center gap-2 text-sm text-muted-foreground">
+						<FontAwesomeIcon className="text-accent" icon={faCheckCircle} />
+						Валидност: {lifespan} дни
+					</p>
+
 
 					<DialogTrigger className="w-full">
 						<div

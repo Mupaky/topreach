@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useEffect, useState } from "react";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import Heading from "@/components/others/Heading";
 import Transition from "@/components/others/Transition";
@@ -8,9 +8,23 @@ import TikTokOrderForm from "@/components/forms/TikTokOrderForm";
 import Button from "@/components/others/Button";
 
 export default function TikTokOrder({ user }) {
-	let editingPoints;
 
-	if (user) editingPoints = user.editingPoints;
+	const [editingPoints, setEditingPoints] = useState(0);
+
+	useEffect(() => {
+		if (user?.id) {
+			async function fetchPoints() {
+				try {
+					const res = await fetch(`/api/activePoints?userId=${user.id}&type=editingPoints`);
+					const data = await res.json();
+					setEditingPoints(data.total || 0);
+				} catch (error) {
+					console.error("Failed to fetch editing points:", error);
+				}
+			}
+			fetchPoints();
+		}
+	}, [user?.id]);
 
 	return (
 		<>
@@ -53,6 +67,7 @@ export default function TikTokOrder({ user }) {
 								</div>
 
 								<TikTokOrderForm
+									userId={user.id}
 									email={user.email}
 									points={editingPoints}
 								/>

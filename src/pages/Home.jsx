@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useEffect, useState } from "react";
 import Transition from "@/components/others/Transition";
 import PointsCard from "@/components/cards/PointsCard";
 import Button from "@/components/others/Button";
@@ -16,15 +16,36 @@ import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import Link from "next/link";
 
 export default function Home({ user, orders }) {
-	let firstName, editingPoints, recordingPoints, designPoints;
+	const [editingPoints, setEditingPoints] = useState(0);
+	const [recordingPoints, setRecordingPoints] = useState(0);
+	const [designPoints, setDesignPoints] = useState(0);
+	const firstName = user?.fullName?.split(" ")[0] || "Потребител";
 
-	if (user) {
-		firstName = user.fullName.split(" ")[0];
+	useEffect(() => {
+		async function fetchPoints() {
+			if (!user?.id) return;
 
-		editingPoints = user.editingPoints;
-		recordingPoints = user.recordingPoints;
-		designPoints = user.designPoints;
-	}
+			try {
+				const [editingRes, recordingRes, designRes] = await Promise.all([
+					fetch(`/api/activePoints?userId=${user.id}&type=editingPoints`),
+					fetch(`/api/activePoints?userId=${user.id}&type=recordingPoints`),
+					fetch(`/api/activePoints?userId=${user.id}&type=designPoints`),
+				]);
+
+				const editing = await editingRes.json();
+				const recording = await recordingRes.json();
+				const design = await designRes.json();
+
+				setEditingPoints(editing.total || 0);
+				setRecordingPoints(recording.total || 0);
+				setDesignPoints(design.total || 0);
+			} catch (err) {
+				console.error("❌ Error fetching points:", err);
+			}
+		}
+
+		fetchPoints();
+	}, [user?.id]);
 
 	function formatDate(dateString) {
 		const date = new Date(dateString);
@@ -160,66 +181,8 @@ export default function Home({ user, orders }) {
 									</div>
 								</div>
 
-								<div className="relative flex flex-col">
-									<div className="w-96 h-96 -z-10 absolute -top-20 -right-20 bg-gradient-to-br from-accent/40 to-background blur-[100px] filter rounded-full" />
+								<Link href="/my-orders" className="block px-4 py-2 hover:bg-gray-700">📦 Моите поръчки</Link>
 
-									<h2 className="font-[700] text-3xl md:text-4xl bg-gradient-to-b from-foreground to-neutral-400 bg-clip-text text-transparent">
-										Поръчки (услуги)
-									</h2>
-
-									<div className="border bg-background border-secondary w-full max-h-[26rem] overflow-scroll mt-5 rounded-[30px] px-4 py-5 md:p-5 flex-1 relative">
-										{hasOrders ? (
-											<div className="flex flex-col gap-5">
-												{allOrders.map(
-													(order, index) => {
-														if (
-															order.orderType !=
-															"pointsOrders"
-														)
-															return (
-																<Link
-																	key={index}
-																	href={`/${order.orderType}/${order.id}`}
-																>
-																	<div className="flex justify-between text-sm md:text-base items-center transition-all hover:opacity-80">
-																		<div className="flex gap-2 md:gap-5 items-center">
-																			{
-																				icons[
-																					order
-																						.orderType
-																				]
-																			}
-																			<p>
-																				{formatDate(
-																					order.created_at
-																				)}
-																			</p>
-																			<p>
-																				{
-																					order.status
-																				}
-																			</p>
-																		</div>
-																		<p>
-																			Цена:{" "}
-																			{
-																				order.price
-																			}{" "}
-																			т.
-																		</p>
-																	</div>
-																</Link>
-															);
-													}
-												)}
-											</div>
-										) : (
-											<p className="font-[600] text-neutral-400 w-max mx-auto">
-												Няма направени поръчки
-											</p>
-										)}
-									</div>
-								</div>
 
 								<div className="relative flex flex-col xl:col-span-2 min-h-96">
 									<h2 className="font-[700] text-3xl md:text-4xl bg-gradient-to-b from-foreground to-neutral-400 bg-clip-text text-transparent">

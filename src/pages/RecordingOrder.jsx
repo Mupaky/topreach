@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import Heading from "@/components/others/Heading";
 import Transition from "@/components/others/Transition";
@@ -8,9 +8,22 @@ import RecordingOrderForm from "@/components/forms/RecordingOrderForm";
 import Button from "@/components/others/Button";
 
 export default function RecordingOrder({ user }) {
-	let recordingPoints;
+	const [recordingPoints, setAvailableRecordingPoints] = useState(0);
 
-	if (user) recordingPoints = user.recordingPoints;
+	useEffect(() => {
+		async function fetchActivePoints() {
+			try {
+				const res = await fetch(`/api/activePoints?userId=${user.id}&type=recordingPoints`);
+				const data = await res.json();
+				setAvailableRecordingPoints(data.total); // this is the real-time points from pointsorders
+			} catch (err) {
+				console.error("❌ Failed to fetch active recording points:", err);
+			}
+		}
+	
+		if (user?.id) fetchActivePoints();
+	}, [user]);
+
 
 	return (
 		<>
@@ -56,6 +69,7 @@ export default function RecordingOrder({ user }) {
 								<RecordingOrderForm
 									email={user.email}
 									points={recordingPoints}
+									userId={user.id}
 								/>
 							</div>
 						</MaxWidthWrapper>

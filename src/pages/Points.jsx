@@ -5,7 +5,7 @@ import Transition from "@/components/others/Transition";
 import BuyPointsCard from "@/components/cards/BuyPointsCard";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 
-export default function Points({ data, email, name }) {
+export default function Points({ data, email, name, userId }) {
 	return (
 		<Transition delay={0.2}>
 			<section className="min-h-screen py-44 md:py-64">
@@ -36,7 +36,9 @@ export default function Points({ data, email, name }) {
 													recordingPoints:
 														item.recordingPoints,
 												}}
+												lifespan={item.lifespan}
 												email={email}
+												userId={userId}
 												name={name}
 											/>
 										);

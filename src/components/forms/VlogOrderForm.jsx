@@ -66,13 +66,15 @@ const formSchema = z.object({
 	delivery: z.string(),
 });
 
-export default function VlogOrderForm({ email, points }) {
+export default function VlogOrderForm({ userId, points }) {
 	const [error, setError] = useState(null);
 	const [submitError, setSubmitError] = useState(null);
 	const [loading, setLoading] = useState(false);
 
 	const [finalPrice, setFinalPrice] = useState(0);
 	const [hoursOfWork, setHoursOfWork] = useState(0);
+	const [availableEditingPoints, setAvailableEditingPoints] = useState(0);
+
 
 	const router = useRouter();
 
@@ -129,6 +131,26 @@ export default function VlogOrderForm({ email, points }) {
 			}
 		}
 	}, [lutValue, form]);
+
+	useEffect(() => {
+		async function fetchActivePoints() {
+			try {
+				const res = await fetch(`/api/activePoints?userId=${userId}&type=editingPoints`);
+				const data = await res.json();
+				console.log("✔️ API Response:", data);
+				console.log("🧮 Setting availableEditingPoints to:", data.total);
+				setAvailableEditingPoints(data.total);
+			} catch (err) {
+				console.error("❌ Failed to fetch active editing points:", err);
+			}
+		}
+		if (userId) {
+			console.log("📤 Fetching active points for user:", userId);
+			fetchActivePoints();
+		}
+	}, [userId]);
+	
+	
 
 	function calculateFinalPrice(values) {
 		setSubmitError(null);
@@ -219,9 +241,14 @@ export default function VlogOrderForm({ email, points }) {
 
 	// 5) Submit Handler
 	async function submit() {
-		setLoading(true);
 
-		if (points < finalPrice) {
+		
+
+		setLoading(true);
+		console.log("🧾 Final Price:", finalPrice);
+		console.log("💰 Available Points:", availableEditingPoints);
+
+		if ((availableEditingPoints ?? 0) < finalPrice) {
 			setSubmitError("Нямате достатъчно точки.");
 			setLoading(false);
 			return;
@@ -234,7 +261,7 @@ export default function VlogOrderForm({ email, points }) {
 			type: "vlog",
 			price: finalPrice,
 			hoursOfWork,
-			email,
+			userId,
 		};
 
 		try {

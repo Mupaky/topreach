@@ -24,7 +24,7 @@ import {
 	DialogClose,
 } from "@/components/ui/dialog";
 
-export default function RecordingOrderForm({ email, points }) {
+export default function RecordingOrderForm({ email, points, userId }) {
 	// -----------------------------
 	// State for Booking and Fields
 	// -----------------------------
@@ -241,7 +241,7 @@ export default function RecordingOrderForm({ email, points }) {
 
 		const data = {
 			type: "recording",
-			email,
+			userId,
 			date: dateString,
 			startHour,
 			endHour,

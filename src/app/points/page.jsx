@@ -33,7 +33,7 @@ export default async function page() {
 	return (
 		<>
 			<Navbar />
-			<Points data={data} email={user.email} name={user.fullName} />
+			<Points data={data} email={user.email} name={user.fullName} userId={user.id} />
 		</>
 	);
 }

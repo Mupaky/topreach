@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import Heading from "@/components/others/Heading";
 import Transition from "@/components/others/Transition";
@@ -8,9 +8,21 @@ import ThumbnailOrderForm from "@/components/forms/ThumbnailOrderForm";
 import Button from "@/components/others/Button";
 
 export default function ThumbnailOrder({ user }) {
-	let designPoints;
+	const [designPoints, setAvailableDesignPoints] = useState(0);
 
-	if (user) designPoints = user.designPoints;
+	useEffect(() => {
+		async function fetchActivePoints() {
+			try {
+				const res = await fetch(`/api/activePoints?userId=${user.id}&type=designPoints`);
+				const data = await res.json();
+				setAvailableDesignPoints(data.total);
+			} catch (err) {
+				console.error("Failed to fetch design points:", err);
+			}
+		}
+	
+		if (user?.id) fetchActivePoints();
+	}, [user]);	
 
 	return (
 		<>
@@ -55,6 +67,7 @@ export default function ThumbnailOrder({ user }) {
 								<ThumbnailOrderForm
 									email={user.email}
 									points={designPoints}
+									userId={user.id}
 								/>
 							</div>
 						</MaxWidthWrapper>

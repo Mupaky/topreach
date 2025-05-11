@@ -24,9 +24,9 @@ export async function decrypt(input) {
     return payload;
 }
 
-export async function login({ fullName, email, editingPoints, recordingPoints, designPoints }) {
+export async function login({ fullName, email, editingPoints, recordingPoints, designPoints, role }) {
     // Get the user
-    const user = { fullName, email, editingPoints, recordingPoints, designPoints };
+    const user = { fullName, email, editingPoints, recordingPoints, designPoints, role: role ? "admin" : "user" };
 
     // Create the session
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -67,6 +67,8 @@ export async function updateSession(request) {
     parsed.user.editingPoints = data.editingPoints;
     parsed.user.recordingPoints = data.recordingPoints;
     parsed.user.designPoints = data.designPoints;
+    parsed.user.role = data.role;
+    parsed.user.id = data.id;
 
     const res = NextResponse.next();
     res.cookies.set({

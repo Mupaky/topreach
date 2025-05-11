@@ -94,28 +94,15 @@ export default function ClientNavbar(userSession) {
 									</DropdownMenuTrigger>
 									<DropdownMenuContent className="bg-background p-3 text-foreground border-secondary mt-6  rounded-2xl">
 										<DropdownMenuItem className="inner-navbar-link">
-											<Link href="/services/video/vlog/order">
-												Видео монтаж на влог
+											<Link href="/formulas">
+												Направи поръчка
 											</Link>
 										</DropdownMenuItem>
-
 										<DropdownMenuItem className="inner-navbar-link">
-											<Link href="/services/video/tiktok/order">
-												Видео монтаж на TikTok
-											</Link>
-										</DropdownMenuItem>
-
-										<DropdownMenuItem className="inner-navbar-link">
-											<Link href="/services/video/recording/order">
-												Видео заснемане
-											</Link>
-										</DropdownMenuItem>
-
-										<DropdownMenuItem className="inner-navbar-link">
-											<Link href="/services/design/thumbnail/order">
-												Thumbnail дизайн
-											</Link>
-										</DropdownMenuItem>
+												<Link href="/points">
+													Купи точки
+												</Link>
+											</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
 
@@ -139,26 +126,8 @@ export default function ClientNavbar(userSession) {
 										</DropdownMenuItem>
 										<div className="">
 											<DropdownMenuItem className="inner-navbar-link">
-												<Link href="/services/video/vlog/order">
-													Видео монтаж на влог
-												</Link>
-											</DropdownMenuItem>
-
-											<DropdownMenuItem className="inner-navbar-link">
-												<Link href="/services/video/tiktok/order">
-													Видео монтаж на TikTok
-												</Link>
-											</DropdownMenuItem>
-
-											<DropdownMenuItem className="inner-navbar-link">
-												<Link href="/services/video/recording/order">
-													Видео заснемане
-												</Link>
-											</DropdownMenuItem>
-
-											<DropdownMenuItem className="inner-navbar-link">
-												<Link href="/services/design/thumbnail/order">
-													Thumbnail дизайн
+												<Link href="/formulas">
+													Направи поръчка
 												</Link>
 											</DropdownMenuItem>
 

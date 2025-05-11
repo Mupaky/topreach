@@ -1,176 +1,150 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 const supabase = createClient();
 
+
 export async function POST(req) {
-    async function fetchId(email) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', email)
-            .single();
-
-        if (error) {
-            throw error;
-        }
-
-        return data;
-    }
-
-    async function updateEditingPoints(profileId, pointsToSubtract) {
-        const id = profileId.id;
-
-        const { data: profile, error: fetchError } = await supabase
-            .from('profiles')
-            .select('editingPoints')
-            .eq('id', id)
-            .single();
-
-        if (fetchError) {
-            throw new Error(`Failed to fetch editing points: ${fetchError.message}`);
-        }
-
-        const currentPoints = profile.editingPoints;
-
-        if (currentPoints < pointsToSubtract) {
-            throw new Error('Insufficient editing points');
-        }
-
-        const newPoints = currentPoints - pointsToSubtract;
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ editingPoints: newPoints })
-            .eq('id', id)
-
-        if (updateError) {
-            throw new Error(`Failed to update editing points: ${updateError.message}`);
-        }
-
-        return newPoints;
-    }
-
-    async function updateRecordingPoints(profileId, pointsToSubtract) {
-        const id = profileId.id;
-
-        const { data: profile, error: fetchError } = await supabase
-            .from('profiles')
-            .select('recordingPoints')
-            .eq('id', id)
-            .single();
-
-        if (fetchError) {
-            throw new Error(`Failed to fetch recording points: ${fetchError.message}`);
-        }
-
-        const currentPoints = profile.recordingPoints;
-
-        if (currentPoints < pointsToSubtract) {
-            throw new Error('Insufficient recording points');
-        }
-
-        const newPoints = currentPoints - pointsToSubtract;
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ recordingPoints: newPoints })
-            .eq('id', id)
-
-        if (updateError) {
-            throw new Error(`Failed to update recording points: ${updateError.message}`);
-        }
-
-        return newPoints;
-    }
-
-    async function updateDesignPoints(profileId, pointsToSubtract) {
-        const id = profileId.id;
-
-        const { data: profile, error: fetchError } = await supabase
-            .from('profiles')
-            .select('designPoints')
-            .eq('id', id)
-            .single();
-
-        if (fetchError) {
-            throw new Error(`Failed to fetch design points: ${fetchError.message}`);
-        }
-
-        const currentPoints = profile.designPoints;
-
-        if (currentPoints < pointsToSubtract) {
-            throw new Error('Insufficient design points');
-        }
-
-        const newPoints = currentPoints - pointsToSubtract;
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ designPoints: newPoints })
-            .eq('id', id)
-
-        if (updateError) {
-            throw new Error(`Failed to update design points: ${updateError.message}`);
-        }
-
-        return newPoints;
-    }
-
     const body = await req.json();
-    const id = await fetchId(body.email);
-    body["user"] = id.id;
-    delete body["email"];
 
-    if (body.type == "vlog") {
-        await updateEditingPoints(id, body.price);
-        delete body["type"];
-        const { data, error } = await supabase.from('vlogOrders').insert(body);
+    async function deductPointsFromPackages(userId, pointType, amountToDeduct) {
+        if (!["editingPoints", "recordingPoints", "designPoints"].includes(pointType)) {
+            throw new Error(`Невалиден тип точки: ${pointType}`);
+        }
 
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
+        // Fetch all user's packages
+        const { data: pointPackages, error } = await supabase
+            .from("pointsorders")
+            .select("*")
+            .eq("user", userId);
+
+        if (error || !pointPackages) {
+            throw new Error("Неуспешно извличане на точковите пакети.");
+        }
+
+        const now = new Date();
+
+        // Filter for valid and active packages and sort by soonest expiring
+        const sortedPackages = pointPackages
+            .map(pkg => {
+                const createdAt = new Date(pkg.created_at);
+                const expiration = new Date(createdAt.getTime() + pkg.lifespan * 24 * 60 * 60 * 1000);
+                return { ...pkg, expiration };
+            })
+            .filter(pkg => pkg.expiration > now && pkg[pointType] > 0)
+            .sort((a, b) => a.expiration - b.expiration);
+
+        let remaining = amountToDeduct;
+
+        for (const pkg of sortedPackages) {
+            if (remaining <= 0) break;
+
+            const available = pkg[pointType];
+            const toUse = Math.min(remaining, available);
+            const newValue = available - toUse;
+
+            const { error: updateError } = await supabase
+                .from("pointsorders")
+                .update({ [pointType]: newValue })
+                .eq("id", pkg.id);
+
+            if (updateError) {
+                throw new Error(`Грешка при обновяване на пакет: ${updateError.message}`);
+            }
+
+            remaining -= toUse;
+        }
+
+        if (remaining > 0) {
+            throw new Error(`Недостатъчно точки за ${pointType}. Нужни: ${amountToDeduct}`);
         }
     }
-    else if (body.type == "tiktok") {
-        await updateEditingPoints(id, body.price);
-        delete body["type"];
-        const { data, error } = await supabase.from('tiktokOrders').insert(body);
 
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-        }
-    }
-    else if (body.type == "recording") {
-        await updateRecordingPoints(id, body.price);
-        delete body["type"];
-        const { data, error } = await supabase.from('recordings').insert(body);
+    const pointTypeMap = {
+		vlog: "editingPoints",
+		tiktok: "editingPoints",
+		recording: "recordingPoints",
+		thumbnail: "designPoints"
+	};
+    
 
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-        }
-    }
-    else if (body.type == "thumbnail") {
-        await updateDesignPoints(id, body.price);
-        delete body["type"];
-        const { data, error } = await supabase.from('thumbnailOrders').insert(body);
-
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-        }
-    }
-    else if (body.type == "points") {
-        delete body["type"];
-        const { data, error } = await supabase.from('pointsOrders').insert(body);
-
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-        }
+    if (body.type === "points") {
+        if (!body.userId) {
+        return NextResponse.json(
+            { message: "Липсва userId за точковата поръчка." },
+            { status: 400 }
+        );
     }
 
-    return NextResponse.json({ message: "Поръчката беше регистрирана." });
+        body.user = body.userId;
+		delete body.userId;
+		delete body.type;
+        delete body.email;
+
+		if (!body.lifespan || isNaN(parseInt(body.lifespan))) {
+			return NextResponse.json(
+				{ message: "Missing or invalid lifespan for points package." },
+				{ status: 400 }
+			);
+		}
+
+		body.lifespan = parseInt(body.lifespan, 10);
+
+        //Add info to description field
+        const descParts = [];
+
+        if (body.editingPoints) descParts.push(`Видео монтаж: ${body.editingPoints}т`);
+        if (body.recordingPoints) descParts.push(`Видео заснемане: ${body.recordingPoints}т`);
+        if (body.designPoints) descParts.push(`Дизайн: ${body.designPoints}т`);
+        if (body.price) descParts.push(`Цена: ${body.price}лв`);
+        if (body.lifespan) descParts.push(`Валидност: ${body.lifespan} дни`);
+        body.description = descParts.join(" | ");
+
+		const { error } = await supabase.from("pointsorders").insert(body);
+
+		if (error) {
+            console.error("❌ Error inserting pointsorder:", error); // ⬅️ Log it
+			return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
+		}
+        console.log("✅ Successfully inserted pointsorder", body); // ⬅️ Add success log too
+	} else {
+		const pointType = pointTypeMap[body.type];
+
+		if (!pointType) {
+			return NextResponse.json({ message: "Невалиден тип поръчка." }, { status: 400 });
+		}
+
+		try {
+			await deductPointsFromPackages(body.userId, pointType, body.price);
+		} catch (err) {
+			return NextResponse.json({ message: err.message }, { status: 400 });
+		}
+
+		const tableMap = {
+			vlog: "vlogOrders",
+			tiktok: "tiktokOrders",
+			recording: "recordings",
+			thumbnail: "thumbnailOrders"
+		};
+
+		const tableName = tableMap[body.type];
+        body.user = body.userId;
+        delete body.userId;
+		delete body.type;
+
+        // if there is need to initialize more field add them below
+        if (!body.status) {
+            body.status = "Приета";
+        }
+
+		const { error } = await supabase.from(tableName).insert(body);
+
+		if (error) {
+			return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
+		}
+	}
+
+	return NextResponse.json({ message: "Поръчката беше регистрирана." });
 }

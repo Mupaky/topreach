@@ -111,4 +111,19 @@ html {
     backdrop-filter: blur(5.8px);
     -webkit-backdrop-filter: blur(5.8px);
 }
+
+.dynamic-field-input {
+    /* after: no width utility here */
+    @apply bg-gray-700 border border-gray-600
+           px-3 py-1.5 rounded focus:outline-none
+           focus:ring-1 focus:ring-accent focus:border-transparent
+           text-white text-sm placeholder-gray-400;
+  }
+select.dynamic-field-input {
+  @apply appearance-none bg-no-repeat;
+  background-image: url("data:image/svg+xml,...");
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
   

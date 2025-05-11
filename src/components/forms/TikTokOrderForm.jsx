@@ -45,7 +45,7 @@ const formSchema = z.object({
 	description: z.string(),
 });
 
-export default function TikTokOrderForm({ email, points }) {
+export default function TikTokOrderForm({ userId, email, points }) {
 	const [error, setError] = useState(null);
 	const [submitError, setSubmitError] = useState(null);
 	const [loading, setLoading] = useState(false);
@@ -89,7 +89,7 @@ export default function TikTokOrderForm({ email, points }) {
 			...values,
 			type: "tiktok",
 			price: finalPrice,
-			email,
+			userId,
 		};
 
 		try {
