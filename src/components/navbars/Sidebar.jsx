@@ -14,22 +14,27 @@ const Sidebar = () => {
         <ul>
           <li>
             <Link href="/admin/formulas" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
-                Formulas
+              Формули
+            </Link>
+          </li>
+          <li>
+            <Link href="/admin/formula-orders" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
+              Поръчки
             </Link>
           </li>
           <li>
             <Link href="/admin/packages" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
-                Packages
+              Пакети с точки
             </Link>
           </li>
           <li>
             <Link href="/admin/points-orders" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
-                Points Orders
+              Пакети точки потребители
             </Link>
           </li>
           <li>
             <Link href="/admin/users" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
-                Users
+              Потребители
             </Link>
           </li>
           {/* Add more navigation items here */}

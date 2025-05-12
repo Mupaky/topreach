@@ -2,6 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import AddPoints from "@/components/forms/AddPoints";
+import AddCustomPackage from "@/components/forms/AddCustomPackage";
 import AdminLayout from "@/components/dashboard/AdminLayout";
 import { createClient } from "@/utils/client";
 import ManageUserPackages from "@/components/forms/ManageUserPackages"; // Import the component
@@ -42,6 +44,24 @@ export default function AdminPointsOrdersPage() {
         loadInitialData();
     }, []);
 
+    const [profiles, setProfiles] = useState([]);
+
+	useEffect(() => {
+		async function fetchProfiles() {
+			const { data, error } = await supabase
+				.from("profiles")
+				.select("id, fullname, email")
+				.order("fullname", { ascending: true });
+
+			if (error) {
+				console.error("Грешка при зареждане на профилите:", error.message);
+			} else {
+				setProfiles(data || []);
+			}
+		}
+		fetchProfiles();
+	}, []);
+
     // Callback function to update the main list when a package is updated within ManageUserPackages
     const handlePackageUpdatedInChild = (updatedPackage) => {
         setAllPointsOrders(prevOrders =>
@@ -57,6 +77,13 @@ export default function AdminPointsOrdersPage() {
 
     return (
         <AdminLayout>
+            {/* Add points dashboard */}
+			<h2 className="text-xl md:text-3xl font-[700] mb-5 mt-10">
+						Зареди точки
+					</h2>
+					<div className="mb-10"> {/* Added margin-bottom */}
+                        <AddPoints sortedProfiles={sortedProfilesForDropdown} pointsOrdersData={allPointsOrders} />
+                    </div>		
             <div className="space-y-10">
                 <h1 className="text-3xl font-bold text-white">Управление на Пакети с Точки</h1>
 
@@ -79,6 +106,13 @@ export default function AdminPointsOrdersPage() {
                 {/* You could add other sections here if needed, e.g., a summary or global actions */}
 
             </div>
+
+            <div className="min-h-screen px-6 py-10 text-white">
+				<h1 className="text-2xl md:text-3xl font-bold mb-6 text-accent">
+					Добави персонален пакет
+				</h1>
+				<AddCustomPackage sortedProfiles={profiles} />
+			</div>
         </AdminLayout>
     );
 }
