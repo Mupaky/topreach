@@ -210,8 +210,6 @@ export async function DELETE(req) {
         // }
 
 
-        // --- Success ---
-        // If no error occurred, the deletion was successful (or the row didn't exist and RLS allowed the attempt).
         console.log(`DELETE /api/packages - Package ${packageId} deleted successfully (or did not exist).`);
         // Return 200 OK with a message, or 204 No Content if preferred
         return NextResponse.json(

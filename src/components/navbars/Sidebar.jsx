@@ -18,6 +18,16 @@ const Sidebar = () => {
             </Link>
           </li>
           <li>
+            <Link href="/admin/packages" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
+                Packages
+            </Link>
+          </li>
+          <li>
+            <Link href="/admin/points-orders" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
+                Points Orders
+            </Link>
+          </li>
+          <li>
             <Link href="/admin/users" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
                 Users
             </Link>
