@@ -94,12 +94,22 @@ export default function Home({ user, orders }) {
 
 	return (
 		<>
+		
 			{user && (
 				<Transition delay={0.2}>
 					<section className="min-h-screen overflow-hidden pb-10">
 						<MaxWidthWrapper>
 							<div className="mt-32 grid grid-cols-1 xl:grid-cols-2 gap-7 items-stretch">
 								<div className="flex flex-col">
+									{user.role == "admin" ? (
+										<div className="flex justify-start mb-6">
+										<Link href="/admin/formulas">
+											<button className="px-4 py-2 bg-accent hover:bg-accentLighter text-white rounded-full shadow transition">
+												Admin Dashboard
+											</button>
+										</Link>
+										</div>
+									) : false}
 									<h2 className="font-[700] text-xl md:text-4xl bg-gradient-to-b from-foreground to-neutral-400 bg-clip-text text-transparent">
 										{firstName &&
 											`Здравейте отновно, ${firstName}!`}

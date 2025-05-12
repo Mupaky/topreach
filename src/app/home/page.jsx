@@ -190,19 +190,7 @@ export default async function Page() {
 	return (
 		<>
 			<Navbar />
-			{user.role == "admin" ? (
-				<AdminDashboard
-					vlogOrdersData={vlogOrders}
-					tiktokOrdersData={tiktokOrders}
-					thumbnailOrdersData={thumbnailOrders}
-					recordingOrdersData={recordingOrders}
-					profilesData={profiles}
-					pointsOrdersData={pointsOrders}
-					packagesData={packages}
-				/>
-			) : (
-				<Home user={user} orders={orders} />
-			)}
+			<Home user={user} orders={orders || { pointsOrders: [] }} />
 		</>
 	);
 }
