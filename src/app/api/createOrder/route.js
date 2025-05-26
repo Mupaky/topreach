@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/client";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createServerClient } from "@/utils/supabase/server";
 
-const supabase = createClient();
+const supabase = createServerClient ();
 
 
 export async function POST(req) {

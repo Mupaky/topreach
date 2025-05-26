@@ -1,196 +1,147 @@
+// /app/home/page.jsx
 import { getSession } from "@/utils/lib";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/navbars/Navbar";
-import Home from "@/pages/Home";
-import { createClient } from "@/utils/client";
-import AdminDashboard from "@/pages/AdminDashboard";
+import Home from "@/pages/Home"; // This is likely your client component for display
+// IMPORTANT: Use the server client creator
+import { createServerClient } from '@/utils/supabase/server'; // Or your actual path to server client factory
 
-const supabase = createClient();
+// DO NOT initialize client at top level for Server Components needing user context
+// const supabase = createClient(); // REMOVE THIS
 
 export default async function Page() {
-	const session = await getSession();
-	let user, orders;
+    const supabase = createServerClient(); // <<< CREATE CLIENT HERE, PER REQUEST
+    const session = await getSession();    // Your custom jose session
+    let user, ordersDataForClient; // Renamed for clarity
 
-	let vlogOrders,
-		tiktokOrders,
-		thumbnailOrders,
-		recordingOrders,
-		profiles,
-		pointsOrders,
-		packages;
+    // Initialize ordersDataForClient to ensure it's always an object
+    ordersDataForClient = {
+        vlogOrders: [],
+        tiktokOrders: [],
+        thumbnailOrders: [],
+        recordingOrders: [],
+        pointsOrders: [],
+    };
 
-	if (!session) {
-		console.log("❌ No session found. Redirecting to /");
-		redirect("/");
-	} else {
-		user = session.user;
+    // All other data needed by admin on this page
+    let adminSpecificData = {
+        allProfiles: [],
+        allPointsOrders: [], // If admin needs all points orders, not just their own
+        allPackages: [],    // Master list of pointsPackages
+    };
 
-		if (user.role == "admin") {
 
-			console.log("🔐 Admin access granted");
+    if (!session || !session.user) {
+        console.log("❌ Home Page (Server): No custom session found. Redirecting to /");
+        redirect("/");
+    }
 
-			const { data: vlogOrdersData, error: fetchErrorVlog } =
-				await supabase.from("vlogOrders").select();
+    user = session.user; // User from your custom jose session
 
-			if (fetchErrorVlog) {
-				throw new Error(
-					`Failed to fetch vlog orders: ${fetchErrorVlog.message}`
-				);
-			}
+    try {
+        // At this point, 'supabase' is a server client authenticated via Supabase cookies.
+        // Your RLS policies will now use the auth.uid() and claims from the Supabase JWT.
 
-			const { data: tiktokOrdersData, error: fetchErrorTiktok } =
-				await supabase.from("tiktokOrders").select();
+        if (user.role === "admin") {
+            console.log("Home Page (Server): 🔐 Admin access. Fetching all relevant data...");
 
-			if (fetchErrorTiktok) {
-				throw new Error(
-					`Failed to fetch tiktok orders: ${fetchErrorTiktok.message}`
-				);
-			}
+            // Fetch all data an admin might need, RLS will apply based on Supabase JWT
+            const results = await Promise.all([
+                supabase.from("vlogOrders").select("*").order("created_at", { ascending: false }),
+                supabase.from("tiktokOrders").select("*").order("created_at", { ascending: false }),
+                supabase.from("thumbnailOrders").select("*").order("created_at", { ascending: false }),
+                supabase.from("recordings").select("*").order("created_at", { ascending: false }),
+                supabase.from("profiles").select("*"), // All profiles for admin view
+                supabase.from("pointsorders").select("*, profiles(id, fullname, email)").order("created_at", { ascending: false }), // All points orders for admin
+                supabase.from("pointsPackages").select("*") // Master list of packages
+            ]);
 
-			const { data: thumbnailOrdersData, error: fetchErrorThumbnail } =
-				await supabase.from("thumbnailOrders").select();
+            const [
+                vlogOrdersRes, tiktokOrdersRes, thumbnailOrdersRes, recordingOrdersRes,
+                profilesRes, pointsOrdersRes, packagesRes
+            ] = results;
 
-			if (fetchErrorThumbnail) {
-				throw new Error(
-					`Failed to fetch thumbnail orders: ${fetchErrorThumbnail.message}`
-				);
-			}
+            // Check each for errors - simplified for brevity, add proper error handling
+            if (vlogOrdersRes.error) throw new Error(`Vlog Orders: ${vlogOrdersRes.error.message}`);
+            if (tiktokOrdersRes.error) throw new Error(`Tiktok Orders: ${tiktokOrdersRes.error.message}`);
+            if (thumbnailOrdersRes.error) throw new Error(`Thumbnail Orders: ${thumbnailOrdersRes.error.message}`);
+            if (recordingOrdersRes.error) throw new Error(`Recordings: ${recordingOrdersRes.error.message}`);
+            if (profilesRes.error) throw new Error(`Profiles: ${profilesRes.error.message}`);
+            if (pointsOrdersRes.error) throw new Error(`Points Orders: ${pointsOrdersRes.error.message}`);
+            if (packagesRes.error) throw new Error(`Packages: ${packagesRes.error.message}`);
 
-			const { data: recordingOrdersData, error: fetchErrorRecording } =
-				await supabase.from("recordings").select();
+            // Assign to ordersDataForClient for admin (they see everything if RLS allows)
+            ordersDataForClient.vlogOrders = vlogOrdersRes.data || [];
+            ordersDataForClient.tiktokOrders = tiktokOrdersRes.data || [];
+            ordersDataForClient.thumbnailOrders = thumbnailOrdersRes.data || [];
+            ordersDataForClient.recordingOrders = recordingOrdersRes.data || [];
+            ordersDataForClient.pointsOrders = pointsOrdersRes.data || []; // Admin sees all points orders
 
-			if (fetchErrorRecording) {
-				throw new Error(
-					`Failed to fetch recording orders: ${fetchErrorRecording.message}`
-				);
-			}
+            // Assign to adminSpecificData
+            adminSpecificData.allProfiles = profilesRes.data || [];
+            adminSpecificData.allPointsOrders = pointsOrdersRes.data || []; // Can be redundant if same as above
+            adminSpecificData.allPackages = packagesRes.data || [];
 
-			const { data: profilesData, error: fetchErrorProfiles } =
-				await supabase.from("profiles").select();
+            console.log("Home Page (Server): Admin data fetched.");
 
-			if (fetchErrorProfiles) {
-				throw new Error(
-					`Failed to fetch profiles: ${fetchErrorProfiles.message}`
-				);
-			}
+        } else { // Regular user
+            console.log("Home Page (Server): 👤 Regular user detected:", user.email);
 
-			const { data: pointsData, error: fetchErrorPoints } = await supabase
-				.from("pointsorders")
-				.select("*");
+            // For a regular user, Supabase RLS will filter data based on auth.uid()
+            // The `user.id` from your custom session needs to match `auth.uid()` from Supabase session
+            // This implies your custom session's user.id IS the Supabase auth.uid()
 
-			if (fetchErrorProfiles) {
-				throw new Error(
-					`Failed to fetch points orders: ${fetchErrorPoints.message}`
-				);
-			}
+            // If your custom session's user.id IS the Supabase auth.uid(), you can rely on RLS.
+            // If not, you'd first need to get the Supabase auth.uid() if your RLS needs it explicitly beyond just session.
+            // For RLS like `USING ("user" = auth.uid())`, this should work directly.
 
-			const { data: packagesData, error: fetchErrorPackages } =
-				await supabase.from("pointsPackages").select();
+            const currentSupabaseUserId = user.id; // Assuming user.id from your custom session IS the Supabase auth.uid()
 
-			if (fetchErrorPackages) {
-				throw new Error(
-					`Failed to fetch points packages: ${fetchErrorPackages.message}`
-				);
-			}
+            const results = await Promise.all([
+                supabase.from("vlogOrders").select("id, created_at, price, status").eq("user", currentSupabaseUserId).order("created_at", { ascending: false }),
+                supabase.from("tiktokOrders").select("id, created_at, price, status").eq("user", currentSupabaseUserId).order("created_at", { ascending: false }),
+                supabase.from("thumbnailOrders").select("id, created_at, price, status").eq("user", currentSupabaseUserId).order("created_at", { ascending: false }),
+                supabase.from("recordings").select("id, created_at, price, status").eq("user", currentSupabaseUserId).order("created_at", { ascending: false }),
+                supabase.from("pointsorders").select("id, created_at, price, status, editingPoints, recordingPoints, designPoints, lifespan").eq("user", currentSupabaseUserId).order("created_at", { ascending: false })
+            ]);
 
-			vlogOrders = vlogOrdersData;
-			tiktokOrders = tiktokOrdersData;
-			thumbnailOrders = thumbnailOrdersData;
-			recordingOrders = recordingOrdersData;
-			profiles = profilesData;
-			pointsOrders = pointsData;
-			packages = packagesData;
-		} else {
+            const [
+                vlogOrdersRes, tiktokOrdersRes, thumbnailOrdersRes, recordingOrdersRes, pointsOrdersRes
+            ] = results;
 
-			console.log("👤 Regular user detected:", user.email);
+            // Check each for errors
+            if (vlogOrdersRes.error) throw new Error(`User Vlog Orders: ${vlogOrdersRes.error.message}`);
+            if (tiktokOrdersRes.error) throw new Error(`User Tiktok Orders: ${tiktokOrdersRes.error.message}`);
+            if (thumbnailOrdersRes.error) throw new Error(`User Thumbnail Orders: ${thumbnailOrdersRes.error.message}`);
+            if (recordingOrdersRes.error) throw new Error(`User Recordings: ${recordingOrdersRes.error.message}`);
+            if (pointsOrdersRes.error) throw new Error(`User Points Orders: ${pointsOrdersRes.error.message}`);
 
-			const { data, error: fetchError } = await supabase
-				.from("profiles")
-				.select("id")
-				.eq("email", user.email)
-				.single();
 
-			if (fetchError) {
-				throw new Error(
-					`Failed to fetch user id: ${fetchError.message}`
-				);
-			}
+            ordersDataForClient.vlogOrders = vlogOrdersRes.data || [];
+            ordersDataForClient.tiktokOrders = tiktokOrdersRes.data || [];
+            ordersDataForClient.thumbnailOrders = thumbnailOrdersRes.data || [];
+            ordersDataForClient.recordingOrders = recordingOrdersRes.data || [];
+            ordersDataForClient.pointsOrders = pointsOrdersRes.data || [];
 
-			const id = data.id;
+            console.log("Home Page (Server): User-specific data fetched.");
+        }
+    } catch (err) {
+        console.error("Home Page (Server): ❌ Error fetching data:", err.message);
+        // You might want to pass this error to the client component to display
+        // For now, ordersDataForClient will remain with its empty array defaults
+        // Consider setting an error prop: ordersDataForClient.fetchError = err.message;
+    }
 
-			const { data: vlogOrders, error: vlogFetchError } = await supabase
-				.from("vlogOrders")
-				.select("id, created_at, price, status")
-				.eq("user", id);
-
-			if (vlogFetchError) {
-				throw new Error(
-					`Failed to fetch vlog orders: ${vlogFetchError.message}`
-				);
-			}
-
-			const { data: tiktokOrders, error: tiktokFetchError } =
-				await supabase
-					.from("tiktokOrders")
-					.select("id, created_at, price, status")
-					.eq("user", id);
-
-			if (tiktokFetchError) {
-				throw new Error(
-					`Failed to fetch tiktok orders: ${tiktokFetchError.message}`
-				);
-			}
-
-			const { data: thumbnailOrders, error: thumbnailFetchError } =
-				await supabase
-					.from("thumbnailOrders")
-					.select("id, created_at, price, status")
-					.eq("user", id);
-
-			if (thumbnailFetchError) {
-				throw new Error(
-					`Failed to fetch thumbnail orders: ${thumbnailFetchError.message}`
-				);
-			}
-
-			const { data: recordingOrders, error: recordingFetchError } =
-				await supabase
-					.from("recordings")
-					.select("id, created_at, price, status")
-					.eq("user", id);
-
-			if (thumbnailFetchError) {
-				throw new Error(
-					`Failed to fetch recording orders: ${recordingFetchError.message}`
-				);
-			}
-
-			const { data: pointsOrders, error: pointsFetchError } =
-				await supabase
-					.from("pointsorders")
-					.select("id, created_at, price, status")
-					.eq("user", id);
-
-			if (thumbnailFetchError) {
-				throw new Error(
-					`Failed to fetch points orders: ${pointsFetchError.message}`
-				);
-			}
-
-			orders = {
-				vlogOrders: vlogOrders || [],
-				tiktokOrders: tiktokOrders || [],
-				thumbnailOrders: thumbnailOrders || [],
-				recordingOrders: recordingOrders || [],
-				pointsOrders: pointsOrders || [],
-			  };
-		}
-	}
-
-	return (
-		<>
-			<Navbar />
-			<Home user={user} orders={orders || { pointsOrders: [] }} />
-		</>
-	);
+    // Pass all necessary data to the Home client component
+    return (
+        <>
+            <Navbar /> {/* Assuming Navbar can also use getSession or is a client component */}
+            <Home
+                user={user} // User from custom jose session
+                orders={ordersDataForClient}
+                // Pass admin-specific data if the Home component needs to differentiate
+                adminData={user.role === "admin" ? adminSpecificData : null}
+            />
+        </>
+    );
 }

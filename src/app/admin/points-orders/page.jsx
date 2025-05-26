@@ -1,118 +1,95 @@
 // app/admin/points-orders/page.jsx
-"use client";
+// REMOVE "use client";  <-- This makes it a Server Component
 
-import React, { useState, useEffect, useMemo } from "react";
-import AddPoints from "@/components/forms/AddPoints";
-import AddCustomPackage from "@/components/forms/AddCustomPackage";
+import React from "react";
+import { getSession } from "@/utils/lib"; // Your custom 'jose' session utility
+import { createServerClient } from "@/utils/supabase/server"; // Supabase server client
 import AdminLayout from "@/components/dashboard/AdminLayout";
-import { createClient } from "@/utils/client";
-import ManageUserPackages from "@/components/forms/ManageUserPackages"; // Import the component
+import AdminPointsOrdersClient from "./AdminPointsOrdersClient"; // The Client Component to display UI
+import { redirect } from "next/navigation";
 
-const supabase = createClient();
+// Note: No top-level `const supabase = createServerClient();` here,
+// it should be inside the async function if used, or just once.
 
-export default function AdminPointsOrdersPage() {
-    const [allPointsOrders, setAllPointsOrders] = useState([]);
-    const [allProfiles, setAllProfiles] = useState([]); // For the dropdown in ManageUserPackages
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+export default async function AdminPointsOrdersPage() { // Can be async
+    const supabase = createServerClient(); // Initialize Supabase server client for this request
+    const session = await getSession();    // Get your custom 'jose' session
 
-    async function loadInitialData() {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const { data: ordersData, error: ordersError } = await supabase
-                .from("pointsorders")
-                .select("*")
-                .order("created_at", { ascending: false });
-            if (ordersError) throw ordersError;
-            setAllPointsOrders(ordersData || []);
-
-            const { data: profilesData, error: profilesError } = await supabase
-                .from("profiles")
-                .select("id, fullname, email"); // Fetch what ManageUserPackages needs
-            if (profilesError) throw profilesError;
-            setAllProfiles(profilesData || []);
-
-        } catch (fetchError) {
-            console.error("Failed to fetch initial data for points orders page:", fetchError.message);
-            setError("⚠️ Грешка при зареждане на данните.");
-        }
-        setIsLoading(false);
+    if (!session || !session.user) {
+        console.log("AdminPointsOrdersPage (Server): No custom session, redirecting to /login.");
+        redirect("/login"); // Or your designated admin login page
     }
 
-    useEffect(() => {
-        loadInitialData();
-    }, []);
+    // This role check is based on your custom 'jose' session.
+    // The Supabase RLS will rely on the Supabase JWT's role for actual data access.
+    // Ensure these are consistent for your admin users.
+    if (session.user.role !== 'admin') {
+        console.log(`AdminPointsOrdersPage (Server): Custom session role is '${session.user.role}', not 'admin'. Redirecting to /.`);
+        redirect("/"); // Or a "not authorized" page
+    }
+    console.log("AdminPointsOrdersPage (Server): Custom session role is 'admin'. Proceeding to fetch data.");
 
-    const [profiles, setProfiles] = useState([]);
+    let initialAllPointsOrders = [];
+    let initialAllProfiles = [];
+    let serverFetchError = null;
 
-	useEffect(() => {
-		async function fetchProfiles() {
-			const { data, error } = await supabase
-				.from("profiles")
-				.select("id, fullname, email")
-				.order("fullname", { ascending: true });
+    try {
+        // Since createServerClient() uses the request's Supabase cookies,
+        // and we've established (via custom session) that the user *should* be an admin,
+        // these Supabase calls should be authenticated as an admin, and RLS should pass.
 
-			if (error) {
-				console.error("Грешка при зареждане на профилите:", error.message);
-			} else {
-				setProfiles(data || []);
-			}
-		}
-		fetchProfiles();
-	}, []);
+        console.log("AdminPointsOrdersPage (Server): Fetching pointsorders with profile details...");
+        // Fetch pointsorders and join with profiles if there's a user_id FK in pointsorders
+        // For example, if pointsorders.user_id references profiles.id:
+        const { data: ordersData, error: ordersError } = await supabase
+            .from("pointsorders")
+            .select(`
+                *,
+                profiles (
+                    id,
+                    fullname,
+                    email
+                )
+            `)
+            .order("created_at", { ascending: false });
 
-    // Callback function to update the main list when a package is updated within ManageUserPackages
-    const handlePackageUpdatedInChild = (updatedPackage) => {
-        setAllPointsOrders(prevOrders =>
-            prevOrders.map(order => (order.id === updatedPackage.id ? updatedPackage : order))
-        );
-    };
+        if (ordersError) {
+            console.error("AdminPointsOrdersPage (Server): Error fetching pointsorders:", ordersError);
+            throw ordersError; // Propagate error to be caught by the catch block
+        }
+        initialAllPointsOrders = ordersData || [];
+        console.log(`AdminPointsOrdersPage (Server): Fetched ${initialAllPointsOrders.length} pointsorders.`);
 
-    // Prepare sorted profiles once for the prop
-    const sortedProfilesForDropdown = useMemo(() =>
-        [...(allProfiles || [])].sort((a, b) => (a.fullname || "").localeCompare(b.fullname || "")),
-    [allProfiles]);
+        // Fetch all profiles for dropdowns/forms (if needed separately, or rely on joined data)
+        console.log("AdminPointsOrdersPage (Server): Fetching all profiles for forms...");
+        const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, fullname, email")
+            .order("fullname", { ascending: true });
 
+        if (profilesError) {
+            console.error("AdminPointsOrdersPage (Server): Error fetching all profiles:", profilesError);
+            throw profilesError;
+        }
+        initialAllProfiles = profilesData || [];
+        console.log(`AdminPointsOrdersPage (Server): Fetched ${initialAllProfiles.length} profiles for forms.`);
+
+    } catch (err) {
+        console.error("AdminPointsOrdersPage (Server): Catch block - Error during server-side data fetch:", err.message);
+        serverFetchError = `⚠️ Грешка при зареждане на данните от сървъра: ${err.message}`;
+        // Ensure client component receives empty arrays if data fetch fails
+        initialAllPointsOrders = [];
+        initialAllProfiles = [];
+    }
 
     return (
-        <AdminLayout>
-            {/* Add points dashboard */}
-			<h2 className="text-xl md:text-3xl font-[700] mb-5 mt-10">
-						Зареди точки
-					</h2>
-					<div className="mb-10"> {/* Added margin-bottom */}
-                        <AddPoints sortedProfiles={sortedProfilesForDropdown} pointsOrdersData={allPointsOrders} />
-                    </div>		
-            <div className="space-y-10">
-                <h1 className="text-3xl font-bold text-white">Управление на Пакети с Точки</h1>
-
-                {error && (
-                    <div className="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-md mb-6" role="alert">
-                        <p><span className="font-bold">Грешка:</span> {error}</p>
-                    </div>
-                )}
-
-                {isLoading ? (
-                    <p className="text-gray-400 py-10 text-center">Зареждане на данни...</p>
-                ) : (
-                    <ManageUserPackages
-                        profilesList={sortedProfilesForDropdown}
-                        allPointsOrders={allPointsOrders}
-                        onPackageUpdate={handlePackageUpdatedInChild}
-                    />
-                )}
-                
-                {/* You could add other sections here if needed, e.g., a summary or global actions */}
-
-            </div>
-
-            <div className="min-h-screen px-6 py-10 text-white">
-				<h1 className="text-2xl md:text-3xl font-bold mb-6 text-accent">
-					Добави персонален пакет
-				</h1>
-				<AddCustomPackage sortedProfiles={profiles} />
-			</div>
+        <AdminLayout role={session.user.role}> {/* Pass role from your custom 'jose' session */}
+            <AdminPointsOrdersClient
+                initialUser={session.user} // User object from your custom 'jose' session
+                initialAllPointsOrders={initialAllPointsOrders}
+                initialAllProfiles={initialAllProfiles} // Profiles specifically for dropdowns
+                serverFetchError={serverFetchError}
+            />
         </AdminLayout>
     );
 }

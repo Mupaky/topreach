@@ -1,19 +1,14 @@
 // src/app/api/packages/route.js
 import { NextResponse } from "next/server";
-// Use your standard client setup
-import { createClient } from "@/utils/client"; // Make sure this path is correct
+import { createServerClient } from '@/utils/supabase/server'; 
 
-// Initialize the shared Supabase client instance
-const supabase = createClient();
 
-// REMOVED: isAdmin helper function
 
-// Handle POST request to create a new package
-// WARNING: Security relies entirely on RLS policies on the 'pointsPackages' table allowing INSERT for the correct role.
+const supabase = createServerClient();
 export async function POST(req) {
+    
     console.log("POST /api/packages: Initiating request (RLS based security).");
 
-    // REMOVED: Authorization Check section (isAdmin call)
 
     try {
         const body = await req.json();

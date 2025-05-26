@@ -1,9 +1,18 @@
 // components/dashboard/AdminLayout.jsx
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/navbars/Sidebar";
 
-const AdminLayout = ({ children }) => {
+const AdminLayout = ({ children, role }) => {
+  const router = useRouter();
 
-  const headerHeightClass = 'h-16';
+  useEffect(() => {
+    if (role !== "admin") {
+      router.push("/");
+    }
+  }, [role]);
 
   return (
     <div className="flex flex-col min-h-screen">

@@ -136,6 +136,11 @@ export default function ClientNavbar(userSession) {
 													Купи точки
 												</Link>
 											</DropdownMenuItem>
+											{/* <DropdownMenuItem className="inner-navbar-link">
+												<Link href="/subscriptions">
+													Абонамент(Subscription)
+												</Link>
+											</DropdownMenuItem> */}
 										</div>
 										<div className="w-full h-px bg-neutral-700 my-2"></div>
 										<DropdownMenuItem className="inner-navbar-link text-red-500">

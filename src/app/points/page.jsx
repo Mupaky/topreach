@@ -3,11 +3,13 @@ import Navbar from "@/components/navbars/Navbar";
 import { getSession } from "@/utils/lib";
 import { redirect } from "next/navigation";
 import Points from "@/pages/Points";
-import { createClient } from "@/utils/client";
+// import { createClient } from "@/utils/client";
+import { createServerClient } from '@/utils/supabase/server';
 
-const supabase = createClient();
+
 
 export default async function page() {
+	const supabase = createServerClient();
 	const session = await getSession();
 	let user, data;
 
@@ -32,7 +34,6 @@ export default async function page() {
 
 	return (
 		<>
-			<Navbar />
 			<Points data={data} email={user.email} name={user.fullName} userId={user.id} />
 		</>
 	);

@@ -130,6 +130,7 @@ export default function ManageUserPackages({ profilesList = [], allPointsOrders 
                 }),
             });
             const result = await response.json();
+            console.log("ManageUserPackages - API Response (result):", JSON.stringify(result, null, 2)); // <<<< ADD THIS LOG
             if (!response.ok) {
                 throw new Error(result.message || "Failed to update user package.");
             }

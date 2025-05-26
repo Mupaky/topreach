@@ -1,8 +1,9 @@
-import { createClient } from "@/utils/client";
+// @/utils/getActivePoints.js
 
-const supabase = createClient();
-
-export async function getTotalActivePoints(userId, pointsType) {
+export async function getTotalActivePoints(supabase, userId, pointsType) {
+	if (!supabase) {
+        throw new Error("Supabase client instance is required.");
+    }
 	if (!userId || !pointsType) {
 	  throw new Error("User ID and points type are required.");
 	}

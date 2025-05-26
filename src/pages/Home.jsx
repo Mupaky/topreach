@@ -22,30 +22,42 @@ export default function Home({ user, orders }) {
 	const firstName = user?.fullName?.split(" ")[0] || "Потребител";
 
 	useEffect(() => {
-		async function fetchPoints() {
-			if (!user?.id) return;
 
-			try {
-				const [editingRes, recordingRes, designRes] = await Promise.all([
-					fetch(`/api/activePoints?userId=${user.id}&type=editingPoints`),
-					fetch(`/api/activePoints?userId=${user.id}&type=recordingPoints`),
-					fetch(`/api/activePoints?userId=${user.id}&type=designPoints`),
-				]);
+        async function fetchPointsForType(userId, type) {
+            try {
+                const response = await fetch(`/api/activePoints?userId=${userId}&type=${type}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`[Home Component] API Error for ${type} (status ${response.status}):`, errorText);
+                    return { total: 0 };
+                }
+                const data = await response.json();
+                return data; 
+            } catch (err) {
+                return { total: 0 };
+            }
+        }
 
-				const editing = await editingRes.json();
-				const recording = await recordingRes.json();
-				const design = await designRes.json();
+        async function loadAllPoints() {
+            if (!user?.id) {
+                setEditingPoints(0); 
+                setRecordingPoints(0);
+                setDesignPoints(0);
+                return;
+            }
 
-				setEditingPoints(editing.total || 0);
-				setRecordingPoints(recording.total || 0);
-				setDesignPoints(design.total || 0);
-			} catch (err) {
-				console.error("❌ Error fetching points:", err);
-			}
-		}
+            const editingData = await fetchPointsForType(user.id, 'editingPoints');
+            const recordingData = await fetchPointsForType(user.id, 'recordingPoints');
+            const designData = await fetchPointsForType(user.id, 'designPoints');
 
-		fetchPoints();
-	}, [user?.id]);
+            setEditingPoints(editingData.total || 0);
+            setRecordingPoints(recordingData.total || 0);
+            setDesignPoints(designData.total || 0);
+        }
+
+        loadAllPoints();
+
+    }, [user?.id]); // Dependency array
 
 	function formatDate(dateString) {
 		const date = new Date(dateString);

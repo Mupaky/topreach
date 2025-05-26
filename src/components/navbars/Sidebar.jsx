@@ -33,6 +33,11 @@ const Sidebar = () => {
             </Link>
           </li>
           <li>
+            <Link href="/admin/investments" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
+              Инвестиционни
+            </Link>
+          </li>
+          <li>
             <Link href="/admin/users" className="block py-2.5 px-6 hover:bg-gray-700 rounded-md transition-colors duration-150">
               Потребители
             </Link>
