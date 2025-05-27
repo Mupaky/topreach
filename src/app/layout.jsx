@@ -1,7 +1,9 @@
 import "./globals.css";
 import { Montserrat } from "next/font/google";
 import Navbar from "@/components/navbars/Navbar";
+import GuestNavbar from "@/components/navbars/GuestNavbar";
 import Footer from "@/components/others/Footer";
+import { getSession } from "@/utils/lib";
 
 const montserrat = Montserrat({ subsets: ["cyrillic"], weight: ["variable"] });
 
@@ -24,14 +26,19 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const session = await getSession();
   return (
     <html
       lang="en"
       className={montserrat.className}
     >
       <body className="bg-background text-foreground flex flex-col min-h-screen">
-        <Navbar />
+      {session && session.user ? (
+          <Navbar />
+        ) : (
+          <GuestNavbar />
+        )}
         <main className="flex-1">
           {children}
         </main>

@@ -135,7 +135,7 @@ export default async function Page() {
     // Pass all necessary data to the Home client component
     return (
         <>
-            <Navbar /> {/* Assuming Navbar can also use getSession or is a client component */}
+            
             <Home
                 user={user} // User from custom jose session
                 orders={ordersDataForClient}
