@@ -64,6 +64,7 @@ export default function LoginForm() {
 			}
 
 			router.push("/home");
+			router.refresh();
 		} catch (err) {
 			setLoading(false);
 			setError("Грешка. Моля опитайте по-късно.");
