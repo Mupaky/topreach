@@ -50,7 +50,7 @@ export default function GuestNavbar() {
 								<div className="ml-2">
 									<Button
 										text="Работи с нас"
-										link="/auth/signup"
+										link="/auth/login"
 										style="arrow"
 									/>
 								</div>

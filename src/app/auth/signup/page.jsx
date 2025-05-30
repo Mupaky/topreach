@@ -24,7 +24,7 @@ export default async function Page() {
 						delay={0.2}
 						className="w-full md:w-max"
 					>
-						<SignUpForm />
+						{/* <SignUpForm /> */}
 					</Transition>
 				</div>
 			</section>

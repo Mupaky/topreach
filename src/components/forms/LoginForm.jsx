@@ -129,7 +129,7 @@ export default function LoginForm() {
 							)}
 						/>
 						<div className="flex flex-col items-center gap-5 w-max mx-auto">
-							<p className="font-medium">
+							{/* <p className="font-medium">
 								Нямате акаунт?{" "}
 								<Link
 									className="text-accent border-b-2 border-accent"
@@ -137,7 +137,7 @@ export default function LoginForm() {
 								>
 									Регистрация
 								</Link>
-							</p>
+							</p> */}
 
 							<button
 								disabled={loading}

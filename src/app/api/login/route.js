@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { login } from "@/utils/lib";
-import { createClient } from "@/utils/client";
+import { createServerClient } from "@/utils/supabase/server";
 import bcrypt from 'bcrypt';
 
-const supabase = createClient();
+const supabase = createServerClient();
 
 export async function POST(req) {
     const body = await req.json();
