@@ -1,18 +1,17 @@
-import AdminLayout from "@/components/dashboard/AdminLayout"; // Your main admin layout
-import ManageUsersNav from "@/components/dashboard/admin/ManageUsersNav"; // The new sub-nav
-import { getSession } from "@/utils/lib"; // To pass role to AdminLayout
+import AdminLayout from "@/components/dashboard/AdminLayout"; 
+import ManageUsersNav from "@/components/dashboard/admin/ManageUsersNav";
+import { getSession } from "@/utils/lib"; 
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/utils/supabase/server";
 
 export default async function ManageUsersLayout({ children }) {
     const supabase = createServerClient();
-    const session = await getSession(); // Your custom jose session
+    const session = await getSession(); 
 
     if (!session || !session.user) {
         redirect("/login");
     }
 
-    // Perform admin check here as well to protect this entire section
     let isAdmin = false;
     const { data: { session: supabaseSession } } = await supabase.auth.getSession();
     if (supabaseSession?.user) {
@@ -33,10 +32,13 @@ export default async function ManageUsersLayout({ children }) {
 
 
     return (
-        <AdminLayout role={session.user.role}> 
-            <div className="p-4 md:p-6"> 
+        <AdminLayout role={session.user.role}>
+            <div className="p-4 md:p-6">
+                <h1 className="text-2xl font-bold text-white mb-6">Управление на Потребители</h1>
                 <ManageUsersNav />
-                {children} 
+                <div className="mt-6"> 
+                    {children} 
+                </div>
             </div>
         </AdminLayout>
     );
