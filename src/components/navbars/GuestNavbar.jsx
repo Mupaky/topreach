@@ -85,6 +85,12 @@ export default function GuestNavbar() {
 										>
 											Контакти
 										</Link>
+										<Link
+											className="navbar-link"
+											href="/auth/login"
+										>
+											Вход
+										</Link>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							</nav>
