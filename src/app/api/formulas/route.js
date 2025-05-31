@@ -1,10 +1,17 @@
 // app/api/formulas/route.js
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/client";
+import { createServerClient } from "@/utils/supabase/server";
+import { getSession } from "@/utils/lib"; 
 
-const supabase = createClient();
+const supabase = createServerClient();
 
 export async function POST(req) {
+	const customSession = await getSession();
+    if (!customSession || !customSession.user || customSession.user.role !== 'admin') {
+        return NextResponse.json({ message: "Forbidden: Admin privileges required to create formulas." }, { status: 403 });
+    }
+    console.log(`API /api/formulas POST - Caller (custom session) IS ADMIN. Admin ID: ${customSession.user.id}`);
+	
 	try {
 		const body = await req.json();
 

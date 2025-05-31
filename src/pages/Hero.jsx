@@ -56,7 +56,7 @@ export default function Hero() {
 						<div className="w-max">
 							<Button
 								text="Запази час за консултация"
-								link="/auth/signup"
+								link="/contacts"
 							/>
 						</div>
 					</Transition>

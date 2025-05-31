@@ -16,19 +16,19 @@ export default function Services() {
 			iconValue: "editing",
 			heading: "Видео монтаж",
 			body: "Създаваме впечатляващи видеа чрез професионален монтаж, които разказват вашата история и ангажират аудиторията.",
-			link: "/auth/signup",
+			link: "/contacts",
 		},
 		{
 			iconValue: "recording",
 			heading: "Видео заснемане",
 			body: "Заснемаме висококачествени видеа за събития, реклами и презентации с внимание към всеки детайл.",
-			link: "/auth/signup",
+			link: "/contacts",
 		},
 		{
 			iconValue: "design",
 			heading: "Дизайн",
 			body: "Дизайни, които привличат внимание – от лога до уеб и графични проекти, съобразени с вашия бранд.",
-			link: "/auth/signup",
+			link: "/contacts",
 		},
 	];
 

@@ -201,9 +201,10 @@ export default function Home({ user, orders }) {
 											</div>
 										</Transition>
 									</div>
+									<Link href="/my-orders" className="block px-4 py-2 hover:bg-gray-700">📦 Моите поръчки</Link>
 								</div>
 
-								<Link href="/my-orders" className="block px-4 py-2 hover:bg-gray-700">📦 Моите поръчки</Link>
+								
 
 
 								<div className="relative flex flex-col xl:col-span-2 min-h-96">

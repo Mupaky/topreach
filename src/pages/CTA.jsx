@@ -13,7 +13,7 @@ export default function CTA() {
 			</p>
 
 			<div className="mt-5 w-max mx-auto relative">
-				<Button text="Започни сега" link="/auth/signup" />
+				<Button text="Започни сега" link="/contacts" />
 			</div>
 
 			<div className="w-60 md:w-96 h-60 md:h-96 -z-10 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-gradient-to-br from-accent/50 to-background blur-[100px] filter rounded-full" />

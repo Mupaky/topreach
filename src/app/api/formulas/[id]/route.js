@@ -1,7 +1,8 @@
+// app/api/formulas/route.js
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/client";
+import { createServerClient } from "@/utils/supabase/server";
 
-const supabase = createClient();
+const supabase = createServerClient();
 
 export async function DELETE(_, { params }) {
   const { id } = params;
