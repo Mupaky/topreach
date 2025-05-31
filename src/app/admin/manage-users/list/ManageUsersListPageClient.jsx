@@ -313,7 +313,7 @@ export default function ManageUsersListPageClient({ initialUsers, serverFetchErr
                                 Сигурни ли сте, че искате да изтриете потребител: <br />
                                 <strong className="text-white">{userToDelete.fullname}</strong> ({userToDelete.email})?
                                 <br /><br />
-                                Тази операция е необратима и ще изтрие потребителя от Supabase Auth и вашата \'profiles\' таблица.
+                                {'Тази операция е необратима и ще изтрие потребителя от Supabase Auth и вашата \'profiles\' таблица.'}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="pt-6 sm:justify-end gap-2"> {/* sm:justify-end for button alignment */}
