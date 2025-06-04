@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { createClient } from "@/utils/client"; // Your client-side Supabase instance
 import { ChevronDown, ChevronUp } from "lucide-react"; // For expand/collapse icons
 import { BeatLoader } from "react-spinners"; // For loading state
+import Link from "next/link";
 
 const supabase = createClient();
 
