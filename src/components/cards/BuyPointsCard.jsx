@@ -52,34 +52,36 @@ export default function BuyPointsCard({ price, points, email, name, lifespan, us
 				return;
 			}
 
-			try {
-				const response = await fetch("/api/pointsFeedback", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						name,
-						editingPoints: points.editingPoints,
-						designPoints: points.designPoints,
-						recordingPoints: points.recordingPoints,
-						price,
-						email,
-					}),
-				});
+			router.push("/thankyou");
+			{' /* If the response is ok, SENDING EMAILS */ }'}
+			// try {
+			// 	const response = await fetch("/api/pointsFeedback", {
+			// 		method: "POST",
+			// 		headers: { "Content-Type": "application/json" },
+			// 		body: JSON.stringify({
+			// 			name,
+			// 			editingPoints: points.editingPoints,
+			// 			designPoints: points.designPoints,
+			// 			recordingPoints: points.recordingPoints,
+			// 			price,
+			// 			email,
+			// 		}),
+			// 	});
 
-				const data = await response.json();
+			// 	const data = await response.json();
 
-				if (response.ok) {
-					router.push("/thankyou");
-				} else {
-					setSubmitError(
-						data.message || "Грешка. Моля опитайте по-късно."
-					);
-					setLoading(false);
-				}
-			} catch (err) {
-				setLoading(false);
-				setSubmitError("Грешка. Моля опитайте по-късно.");
-			}
+			// 	if (response.ok) {
+			// 		router.push("/thankyou");
+			// 	} else {
+			// 		setSubmitError(
+			// 			data.message || "Грешка. Моля опитайте по-късно."
+			// 		);
+			// 		setLoading(false);
+			// 	}
+			// } catch (err) {
+			// 	setLoading(false);
+			// 	setSubmitError("Грешка. Моля опитайте по-късно.");
+			// }
 		} catch (err) {
 			setLoading(false);
 			setSubmitError("Грешка. Моля опитайте по-късно.");
