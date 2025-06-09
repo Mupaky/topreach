@@ -9,7 +9,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"; // Assuming shadcn/ui
+} from "@/components/ui/select";
 
 import {
   Dialog,
@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Button as ShadButton } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilm, faVideo, faPen, faCoins, faListAlt, faFileSignature, faMagic, faTools } from "@fortawesome/free-solid-svg-icons";
+import { faFilm, faVideo, faPen, faCoins, faListAlt, faFileSignature, faMagic, faTools, faBrain } from "@fortawesome/free-solid-svg-icons";
 import Transition from "@/components/others/Transition";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import { BeatLoader } from "react-spinners";
@@ -39,11 +39,12 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
   const [editingPointsBalance, setEditingPointsBalance] = useState(0);
   const [recordingPointsBalance, setRecordingPointsBalance] = useState(0);
   const [designPointsBalance, setDesignPointsBalance] = useState(0);
+  const [consultingPointsBalance, setConsultingPointsBalance] = useState(0);
   const [isFetchingPoints, setIsFetchingPoints] = useState(false);
 
   const [selectedId, setSelectedId] = useState('');
   const [values, setValues] = useState({});
-  const [loading, setLoading] = useState(false); // For form submission
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(serverFetchError || '');
   const [isClientReady, setIsClientReady] = useState(false);
 
@@ -53,7 +54,8 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
   const pointTypeLabels = useMemo(() => ({
     editingPoints: "Монтаж",
     recordingPoints: "Заснемане",
-    designPoints: "Дизайн"
+    designPoints: "Дизайн",
+    consultingPoints: "Консултации"
   }), []);
 
   useEffect(() => {
@@ -63,12 +65,12 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
   useEffect(() => {
     async function fetchAllPointsBalances() {
       if (!user?.id) {
-        setEditingPointsBalance(0); setRecordingPointsBalance(0); setDesignPointsBalance(0);
+        setEditingPointsBalance(0); setRecordingPointsBalance(0); setDesignPointsBalance(0); setConsultingPointsBalance(0);
         return;
       }
       setIsFetchingPoints(true);
       try {
-        const pointsTypes = ['editingPoints', 'recordingPoints', 'designPoints'];
+        const pointsTypes = ['editingPoints', 'recordingPoints', 'designPoints', 'consultingPoints'];
         const results = await Promise.all(
           pointsTypes.map(type =>
             fetch(`/api/activePoints?userId=${user.id}&type=${type}`)
@@ -84,12 +86,14 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
         setEditingPointsBalance(results[0]?.total || 0);
         setRecordingPointsBalance(results[1]?.total || 0);
         setDesignPointsBalance(results[2]?.total || 0);
-        if(results.some(r => r.error)) console.warn("Some points API calls might have failed or returned 0 due to error:", results.filter(r=>r.error));
+        setConsultingPointsBalance(results[3]?.total || 0);
+
+        if(results.some(r => r.error)) console.warn("Some points API calls might have failed:", results.filter(r=>r.error));
 
       } catch (err) {
         console.error("❌ Error fetching all points balances (catch block):", err);
         setMsg("Грешка при зареждане на баланса по точки.");
-        setEditingPointsBalance(0); setRecordingPointsBalance(0); setDesignPointsBalance(0);
+        setEditingPointsBalance(0); setRecordingPointsBalance(0); setDesignPointsBalance(0); setConsultingPointsBalance(0);
       } finally {
         setIsFetchingPoints(false);
       }
@@ -123,7 +127,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
     if (selectedFormula.fields && Array.isArray(selectedFormula.fields)) {
       selectedFormula.fields.forEach(field => {
         if (field.type === 'yesno' || field.type === 'checkbox') {
-          initialValues[field.key] = field.defaultValue === true; // Ensure boolean
+          initialValues[field.key] = field.defaultValue === true;
         } else if (field.type === 'number') {
           initialValues[field.key] = field.defaultValue !== undefined ? String(field.defaultValue) : (field.min !== undefined ? String(field.min) : '0');
         } else {
@@ -141,26 +145,23 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
   const handleCheckboxChange = (key, checked) => { if (typeof checked === 'boolean') setValues(prev => ({ ...prev, [key]: checked })); };
 
   const calculateTotalCostBreakdown = useMemo(() => {
-    const costs = { editingPoints: 0, recordingPoints: 0, designPoints: 0 };
+    const costs = { editingPoints: 0, recordingPoints: 0, designPoints: 0, consultingPoints: 0 };
     if (!selectedFormula || !Array.isArray(selectedFormula.fields)) return costs;
 
-    // Add base price to its specified pointsType
     if (selectedFormula.basePrice && selectedFormula.pointsType && costs.hasOwnProperty(selectedFormula.pointsType)) {
         costs[selectedFormula.pointsType] = (costs[selectedFormula.pointsType] || 0) + Number(selectedFormula.basePrice);
     }
 
     selectedFormula.fields.forEach(field => {
       const fieldValue = values[field.key];
-      // Use field's specific pointsType, fallback to formula's main pointsType if field's is missing/invalid
       const fieldPointsType = (field.pointsType && costs.hasOwnProperty(field.pointsType))
                                ? field.pointsType
                                : (selectedFormula.pointsType && costs.hasOwnProperty(selectedFormula.pointsType)
                                   ? selectedFormula.pointsType
                                   : null);
 
-
       if (!fieldPointsType) {
-          console.warn(`Field "${field.label}" (key: ${field.key}) has invalid or missing pointsType: '${field.pointsType}', and formula default '${selectedFormula.pointsType}' is also invalid or missing. Skipping cost calculation for this field.`);
+          console.warn(`Field "${field.label||field.key}" has invalid pointsType: '${field.pointsType}', formula default: '${selectedFormula.pointsType}'. Skipping cost.`);
           return;
       }
 
@@ -174,7 +175,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
             const quantity = Number(fieldValue);
             if (!isNaN(quantity)) {
                 if (quantity === 0 && field.costIfZero !== undefined) fieldCost = Number(field.costIfZero);
-                else if (quantity !== 0) fieldCost = quantity * Number(field.cost); // Only multiply if quantity is not 0 (unless costIfZero applies)
+                else if (quantity !== 0) fieldCost = quantity * Number(field.cost);
             }
           }
           break;
@@ -196,13 +197,14 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
   }, [selectedFormula, values]);
 
   const hasEnoughPoints = useMemo(() => {
-    if (isFetchingPoints || !selectedFormula) return true; // Default to true if not ready to check, button will be disabled by !selectedId
+    if (isFetchingPoints || !selectedFormula) return true;
     const costBreakdown = calculateTotalCostBreakdown;
     if (costBreakdown.editingPoints > editingPointsBalance) return false;
     if (costBreakdown.recordingPoints > recordingPointsBalance) return false;
     if (costBreakdown.designPoints > designPointsBalance) return false;
+    if (costBreakdown.consultingPoints > consultingPointsBalance) return false;
     return true;
-  }, [calculateTotalCostBreakdown, editingPointsBalance, recordingPointsBalance, designPointsBalance, isFetchingPoints, selectedFormula]);
+  }, [calculateTotalCostBreakdown, editingPointsBalance, recordingPointsBalance, designPointsBalance, consultingPointsBalance, isFetchingPoints, selectedFormula]);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
@@ -236,16 +238,17 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
       } else {
         setMsg(result.message || `Поръчка #${result.order?.id} е създадена успешно!`);
         setSelectedId(''); setValues({});
-        if (user?.id) { // Re-fetch all points balances
+        if (user?.id) {
             setIsFetchingPoints(true);
             Promise.all(
-                ['editingPoints', 'recordingPoints', 'designPoints'].map(type =>
+                ['editingPoints', 'recordingPoints', 'designPoints', 'consultingPoints'].map(type =>
                     fetch(`/api/activePoints?userId=${user.id}&type=${type}`).then(res => res.json())
                 )
             ).then(results => {
                 setEditingPointsBalance(results[0]?.total || 0);
                 setRecordingPointsBalance(results[1]?.total || 0);
                 setDesignPointsBalance(results[2]?.total || 0);
+                setConsultingPointsBalance(results[3]?.total || 0);
             }).catch(err => console.error("Error re-fetching all points balances:", err))
             .finally(() => setIsFetchingPoints(false));
         }
@@ -272,7 +275,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
       return false;
     });
   }, [formulas, user]);
-
+  
   const getFormulaIcon = (formType) => {
     switch (String(formType).toLowerCase()) {
       case 'vlog': return <FontAwesomeIcon icon={faVideo} className="text-accent w-5 h-5" />;
@@ -280,6 +283,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
       case 'recording': return <FontAwesomeIcon icon={faVideo} className="text-accent w-5 h-5" />;
       case 'thumbnail': return <FontAwesomeIcon icon={faPen} className="text-accent w-5 h-5" />;
       case 'editing': return <FontAwesomeIcon icon={faMagic} className="text-accent w-5 h-5" />;
+      case 'consulting': return <FontAwesomeIcon icon={faBrain} className="text-accent w-5 h-5" />;
       case 'general': return <FontAwesomeIcon icon={faListAlt} className="text-accent w-5 h-5" />;
       default: return <FontAwesomeIcon icon={faTools} className="text-accent w-5 h-5" />;
     }
@@ -305,9 +309,9 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
     if (breakdown.editingPoints > 0) parts.push(`${breakdown.editingPoints} ${pointTypeLabels.editingPoints}`);
     if (breakdown.recordingPoints > 0) parts.push(`${breakdown.recordingPoints} ${pointTypeLabels.recordingPoints}`);
     if (breakdown.designPoints > 0) parts.push(`${breakdown.designPoints} ${pointTypeLabels.designPoints}`);
+    if (breakdown.consultingPoints > 0) parts.push(`${breakdown.consultingPoints} ${pointTypeLabels.consultingPoints}`);
     
-    if (parts.length === 0) { // Handle if total cost is 0 after calculation
-        // Check if basePrice exists and which type it is, even if 0
+    if (parts.length === 0) {
         if (selectedFormula && selectedFormula.basePrice !== undefined && selectedFormula.pointsType) {
             return `0 ${pointTypeLabels[selectedFormula.pointsType] || 'точки'}`;
         }
@@ -335,12 +339,17 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
             </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {[{label: pointTypeLabels.editingPoints, value: editingPointsBalance}, {label: pointTypeLabels.recordingPoints, value: recordingPointsBalance}, {label: pointTypeLabels.designPoints, value: designPointsBalance}].map(balance => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[
+                {label: pointTypeLabels.editingPoints, value: editingPointsBalance, icon: faMagic},
+                {label: pointTypeLabels.recordingPoints, value: recordingPointsBalance, icon: faVideo},
+                {label: pointTypeLabels.designPoints, value: designPointsBalance, icon: faPen},
+                {label: pointTypeLabels.consultingPoints, value: consultingPointsBalance, icon: faBrain}
+            ].map(balance => (
                 <div key={balance.label} className="bg-gray-800/70 backdrop-blur-sm border border-secondary p-4 rounded-xl shadow-lg text-center">
                     <p className="text-sm text-neutral-400 mb-1">{balance.label}</p>
                     <p className="text-2xl font-bold text-accent flex items-center justify-center gap-2">
-                        <FontAwesomeIcon icon={faCoins} className="text-yellow-400 w-5 h-5" />
+                        <FontAwesomeIcon icon={balance.icon || faCoins} className="text-yellow-400 w-5 h-5" />
                         {isFetchingPoints ? <BeatLoader size={8} color="white"/> : balance.value} т.
                     </p>
                 </div>
@@ -349,8 +358,8 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
         <div className="text-center mb-10">
             <Link href="/points">
             <ShadButton variant="default" className="bg-accent hover:bg-accentLighter text-white h-11 px-8 text-md font-semibold rounded-lg shadow-lg">
-            Купи още точки
-              </ShadButton>
+                Купи още точки
+            </ShadButton>
             </Link>
         </div>
 
@@ -369,7 +378,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
                       <SelectItem key={f.id} value={f.id} className="focus:bg-gray-700 hover:bg-gray-700/80 data-[state=checked]:bg-accent/80">
                         <div className="flex items-center gap-2">
                             {getFormulaIcon(f.formType)}
-                            <span>{f.name} (Базова цена: {f.basePrice || 0} {f.pointsType ? pointTypeLabels[f.pointsType] || 'т.' : 'т.'})</span>
+                            <span>{f.name} (Базова цена: {f.basePrice || 0} {f.pointsType ? (pointTypeLabels[f.pointsType] || f.pointsType) : 'т.'})</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -404,7 +413,7 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
                                 (+{field.type === 'yesno' || field.type === 'checkbox'
                                     ? `${field.costYes || 0} Да / ${field.costNo || 0} Не`
                                     : field.cost || 0}
-                                {' '}{pointTypeLabels[field.pointsType] || 'т.'}
+                                {' '}{pointTypeLabels[field.pointsType] || field.pointsType}
                                 )
                             </span>
                           )}
@@ -456,9 +465,12 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
                         <p>Нямате достатъчно точки за тази поръчка.</p>
                         {Object.entries(calculateTotalCostBreakdown).map(([type, cost]) => {
                             if (cost > 0) {
-                                const balance = type === 'editingPoints' ? editingPointsBalance : type === 'recordingPoints' ? recordingPointsBalance : designPointsBalance;
+                                const balance = type === 'editingPoints' ? editingPointsBalance :
+                                                type === 'recordingPoints' ? recordingPointsBalance :
+                                                type === 'designPoints' ? designPointsBalance :
+                                                consultingPointsBalance;
                                 if (cost > balance) {
-                                    return <p key={type}>Нужни {pointTypeLabels[type]}: {cost}т., Налични: {balance}т.</p>;
+                                    return <p key={type}>Нужни {pointTypeLabels[type] || type}: {cost}т., Налични: {balance}т.</p>;
                                 }
                             }
                             return null;
@@ -501,9 +513,9 @@ export default function UserFormulasClient({ initialUser, initialFormulas, serve
                     <span className="font-semibold text-accentLighter ml-1">
                         {lastOrderDetails.costBreakdown && Object.entries(lastOrderDetails.costBreakdown)
                             .filter(([_, cost]) => cost > 0)
-                            .map(([type, cost]) => `${cost} ${pointTypeLabels[type] || 'т.'}`)
+                            .map(([type, cost]) => `${cost} ${pointTypeLabels[type] || type}`)
                             .join(', ')
-                        }
+                        } т.
                     </span>
                  </p>
               </div>

@@ -3,18 +3,16 @@
 
 import { useState, useEffect } from 'react';
 
-// Helper to generate simple unique IDs
 const generateId = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-// --- Helper Function to Get Default Cost Structure ---
 const getDefaultCostStructure = (type) => {
     switch (type) {
         case 'yesno':
         case 'checkbox':
             return { costYes: 0, costNo: 0 };
         case 'dropdown':
-            return { options: [] }; // Costs are stored *within* options for dropdown
-        default: // text, number, textarea
+            return { options: [] };
+        default: 
             return { cost: 0 };
     }
 };
@@ -22,18 +20,27 @@ const getDefaultCostStructure = (type) => {
 const FormulaBuilder = ({ onSubmit, formula }) => {
     // --- Top-level Formula State ---
     const [name, setName] = useState('');
-    const [formType, setFormType] = useState('vlog'); // Main category for the formula
-    const [customFormTypes, setCustomFormTypes] = useState([]); // List of available custom types/tags FOR THIS FORMULA
-    const [newFormTypeEntry, setNewFormTypeEntry] = useState(''); // Input for adding new custom types to the formula's list
+    const [formType, setFormType] = useState('vlog');
+    const [customFormTypes, setCustomFormTypes] = useState([]);
+    const [newFormTypeEntry, setNewFormTypeEntry] = useState('');
     const [access, setAccess] = useState('admin');
     const [basePrice, setBasePrice] = useState(0);
-    const [pointsType, setPointsType] = useState('editingPoints'); // Formula's main pointsType (for basePrice)
+    const [pointsType, setPointsType] = useState('editingPoints'); 
     const [fields, setFields] = useState([]);
     const [description, setDescription] = useState('');
+
+    // Available point types for dropdowns
+    const availablePointsTypes = [
+        { value: 'editingPoints', label: 'Editing Points' },
+        { value: 'recordingPoints', label: 'Recording Points' },
+        { value: 'designPoints', label: 'Design Points' },
+        { value: 'consultingPoints', label: 'Consulting Points' },
+    ];
 
     // Load formula when editing, or reset form if no formula
     useEffect(() => {
         if (formula && formula.id) {
+            console.log("FormulaBuilder: Loading existing formula:", JSON.stringify(formula,null,2));
             setName(formula.name || '');
             setDescription(formula.description || '');
             setFormType(formula.formType || 'vlog');
@@ -48,14 +55,13 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
             
             setAccess(formula.access || 'admin');
             setBasePrice(formula.basePrice !== undefined ? Number(formula.basePrice) : 0);
-            setPointsType(formula.pointsType || 'editingPoints');
+            setPointsType(formula.pointsType || 'editingPoints'); // Main pointsType for formula basePrice
 
             setFields((formula.fields || []).map(f => ({
                 ...f,
                 id: f.id || generateId(),
-                pointsType: f.pointsType || 'editingPoints', // Default for loaded field
-                associatedFormTypes: Array.isArray(f.associatedFormTypes) ? f.associatedFormTypes : [], // NEW
-                // Ensure numeric types for costs
+                pointsType: f.pointsType || 'editingPoints', // Default for loaded field if missing
+                associatedFormTypes: Array.isArray(f.associatedFormTypes) ? f.associatedFormTypes : [],
                 cost: f.cost !== undefined ? Number(f.cost) : (f.type !== 'yesno' && f.type !== 'checkbox' && f.type !== 'dropdown' ? 0 : undefined),
                 costYes: f.costYes !== undefined ? Number(f.costYes) : ((f.type === 'yesno' || f.type === 'checkbox') ? 0 : undefined),
                 costNo: f.costNo !== undefined ? Number(f.costNo) : ((f.type === 'yesno' || f.type === 'checkbox') ? 0 : undefined),
@@ -64,20 +70,20 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                     : (f.type === 'dropdown' ? [] : undefined),
             })));
             setNewFormTypeEntry('');
-        } else {
-            // Reset all fields for a new formula
+        } else { // New formula or formula prop is null (resetting)
+            console.log("FormulaBuilder: Resetting form for new formula.");
             setName(''); setDescription(''); setFormType('vlog'); setCustomFormTypes([]);
             setNewFormTypeEntry(''); setAccess('admin'); setBasePrice(0);
             setPointsType('editingPoints'); setFields([]);
         }
     }, [formula]);
 
-    // --- Manage Formula-Level Custom Types/Tags ---
     const handleAddCustomFormTypeToList = () => {
         const trimmedNewType = newFormTypeEntry.trim();
-        if (trimmedNewType && !customFormTypes.includes(trimmedNewType) && !['vlog', 'tiktok', 'thumbnail', 'recording'].includes(trimmedNewType)) {
+        const standardTypes = ['vlog', 'tiktok', 'thumbnail', 'recording'];
+        if (trimmedNewType && !customFormTypes.includes(trimmedNewType) && !standardTypes.includes(trimmedNewType)) {
             setCustomFormTypes(prev => [...prev, trimmedNewType]);
-            // setFormType(trimmedNewType); // Optionally select it, or not
+            setFormType(trimmedNewType); 
             setNewFormTypeEntry('');
         } else if (trimmedNewType) {
             alert(`Тип "${trimmedNewType}" вече съществува или е стандартен.`);
@@ -92,7 +98,6 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
         })));
     };
 
-    // --- Manage Dynamic Fields ---
     const addField = () => {
         const newFieldType = 'text';
         setFields(prevFields => [
@@ -100,8 +105,8 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
             {
                 id: generateId(), label: '', key: '', type: newFieldType,
                 options: [],
-                pointsType: pointsType, // Default to formula's main pointsType
-                associatedFormTypes: [], // Initialize new field property
+                pointsType: pointsType, // Default to the FORMULA's main pointsType
+                associatedFormTypes: [],
                 ...getDefaultCostStructure(newFieldType),
             },
         ]);
@@ -120,7 +125,6 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                 if ('cost' in updatedField) updatedField.cost = parseFloat(updatedField.cost) || 0;
                 if ('costYes' in updatedField) updatedField.costYes = parseFloat(updatedField.costYes) || 0;
                 if ('costNo' in updatedField) updatedField.costNo = parseFloat(updatedField.costNo) || 0;
-
                 if (updatedField.type === 'dropdown' && Array.isArray(updatedField.options)) {
                     updatedField.options = updatedField.options.map(opt => ({
                         ...opt,
@@ -178,20 +182,24 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
         setFields(prevFields => prevFields.filter(f => f.id !== id));
     };
 
-    // --- Form Submission ---
     const handleSubmit = (e) => {
         e.preventDefault();
         let isValid = true;
         const fieldKeys = new Set();
+        const validPointsTypeValues = availablePointsTypes.map(pt => pt.value);
 
-        fields.forEach(field => { // Basic validation loop
+        fields.forEach(field => {
+            if (!isValid) return; // Stop iteration if already invalid
             if (!field.label.trim() || !field.key.trim()) { alert(`Грешка: Поле ID ${field.id} трябва да има Етикет и Ключ.`); isValid = false; return; }
             if (!/^[a-zA-Z0-9_]+$/.test(field.key)) { alert(`Грешка: Ключ "${field.key}" може да съдържа само латиница, цифри и долна черта.`); isValid = false; return; }
             if (fieldKeys.has(field.key)) { alert(`Грешка: Ключ "${field.key}" трябва да е уникален.`); isValid = false; return; }
             fieldKeys.add(field.key);
-            if (!['editingPoints', 'recordingPoints', 'designPoints'].includes(field.pointsType)) {
-                alert(`Грешка: Поле "${field.label}" има невалиден тип точки: "${field.pointsType}".`); isValid = false; return;
+            
+            if (!field.pointsType || !validPointsTypeValues.includes(field.pointsType)) { // Validate pointsType
+                alert(`Грешка: Поле "${field.label}" има невалиден тип точки: "${field.pointsType}". Трябва да е един от: ${validPointsTypeValues.join(', ')}.`);
+                isValid = false; return;
             }
+
             if (field.type === 'dropdown') {
                 if (!Array.isArray(field.options) || field.options.length === 0) { alert(`Грешка: Падащо меню "${field.label}" трябва да има поне една опция.`); isValid = false; return; }
                 const optionValues = new Set();
@@ -208,24 +216,29 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
             }
             if(!isValid) return;
         });
+
         if (!isValid) { console.error("Formula validation failed during field iteration."); return; }
         if (!name.trim()) { alert("Грешка: Името на формулата е задължително."); return; }
-        if ((parseFloat(basePrice) || 0) < 0) { alert("Грешка: Базовата цена не може да е отрицателна."); return; }
+        if (!pointsType || !validPointsTypeValues.includes(pointsType)) {
+             alert(`Грешка: Основният тип точки за формулата е невалиден: "${pointsType}".`); return;
+        }
+        if (basePrice === undefined || basePrice === null || isNaN(parseFloat(basePrice)) || parseFloat(basePrice) < 0) {
+            alert("Грешка: Базовата цена трябва да е валидно неотрицателно число."); return;
+        }
 
 
         const finalFields = fields.map(field => {
             const finalFieldData = {
                 id: field.id, label: field.label, key: field.key, type: field.type,
                 pointsType: field.pointsType,
-                associatedFormTypes: field.associatedFormTypes || [], // Ensure it's an array
-                // Optional properties
-                ...(field.placeholder && { placeholder: field.placeholder }),
+                associatedFormTypes: field.associatedFormTypes || [],
+                ...(field.placeholder !== undefined && { placeholder: field.placeholder }),
                 ...(field.min !== undefined && field.min !== '' && { min: Number(field.min) }),
                 ...(field.max !== undefined && field.max !== '' && { max: Number(field.max) }),
                 ...(field.step !== undefined && field.step !== '' && { step: Number(field.step) }),
-                ...(field.defaultValue !== undefined && { defaultValue: field.defaultValue }), // Could be boolean, number, or string
+                ...(field.defaultValue !== undefined && { defaultValue: field.defaultValue }),
                 ...(field.required !== undefined && { required: !!field.required }),
-                ...(field.description && { description: field.description }),
+                ...(field.description && {description: field.description}),
             };
             switch (field.type) {
                 case 'yesno': case 'checkbox':
@@ -237,7 +250,7 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                         label: opt.label || '', value: opt.value || '', cost: Number(opt.cost) || 0,
                     }));
                     break;
-                default: // text, number, textarea
+                default:
                     finalFieldData.cost = Number(field.cost) || 0;
                     break;
             }
@@ -247,9 +260,9 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
         const formulaData = {
             name, formType, access,
             basePrice: parseFloat(basePrice) || 0,
-            pointsType: pointsType, // This is the main pointsType for the formula's basePrice
+            pointsType: pointsType, // Main pointsType for the formula's basePrice
             description,
-            customFormTypes: [...new Set(customFormTypes)], // Unique list of defined tags for this formula
+            customFormTypes: [...new Set(customFormTypes)],
             fields: finalFields,
         };
 
@@ -261,16 +274,14 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
         }
     };
 
-    // --- JSX ---
     return (
         <form onSubmit={handleSubmit} className="space-y-8 text-white p-4 sm:p-6 bg-gray-800 rounded-lg shadow-xl border border-gray-700">
             <h2 className="text-2xl font-bold border-b border-gray-700 pb-4 mb-8 text-accentLighter">
                 {formula?.id ? "Редактирай Формула" : "Създай Нова Формула"}
             </h2>
 
-            {/* --- Top Level Formula Inputs --- */}
             <section className="space-y-6 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
-                <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700/50 pb-2">Основни Настройки</h3>
+                <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700/50 pb-2">Основни Настройки на Формулата</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
                     <div>
                         <label className="label-xs">Име на Формула <span className="text-red-500">*</span></label>
@@ -293,28 +304,29 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                     <div>
                         <label className="label-xs">Тип Точки за Базовата Цена</label>
                         <select value={pointsType} onChange={(e) => setPointsType(e.target.value)} className="dynamic-field-input">
-                            <option value="editingPoints">Editing Points</option><option value="recordingPoints">Recording Points</option><option value="designPoints">Design Points</option>
+                            {availablePointsTypes.map(pt => (
+                                <option key={pt.value} value={pt.value}>{pt.label}</option>
+                            ))}
                         </select>
                     </div>
                     <div>
-                        <label className="label-xs">Базова Цена (в <span className="text-accentLighter">{pointsType}</span>) <span className="text-red-500">*</span></label>
+                        <label className="label-xs">Базова Цена (в <span className="text-accentLighter">{availablePointsTypes.find(pt => pt.value === pointsType)?.label || pointsType}</span>) <span className="text-red-500">*</span></label>
                         <input type="number" min="0" step="any" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} placeholder="0" required className="dynamic-field-input"/>
                     </div>
                     <div className="md:col-span-2 lg:col-span-3">
                         <label className="label-xs">Описание на Формулата (за потребителя)</label>
-                        <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="dynamic-field-input" rows={2} placeholder="Кратко описание на услугата..."></textarea>
+                        <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="dynamic-field-input min-h-[60px]" rows={2} placeholder="Кратко описание на услугата..."></textarea>
                     </div>
                 </div>
             </section>
 
-            {/* Section for Managing Formula-Level Custom Types/Tags */}
-            <section className="mt-6 pt-6 border-t border-gray-700 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
+            <section className="mt-6 pt-6 border-t border-gray-600 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
                  <label className="block text-sm font-semibold mb-2 text-gray-200">Дефинирай Допълнителни Типове/Тагове за Тази Формула</label>
                  <p className="text-xs text-gray-400 mb-3">Тези тагове могат да бъдат асоциирани с отделни полета по-долу.</p>
                 <div className="flex items-center space-x-2 mb-3">
                     <input
                         type="text"
-                        placeholder="Напр. 'комбинирана услуга', 'видео_продукция'"
+                        placeholder="Напр. 'комбинирана услуга'"
                         value={newFormTypeEntry}
                         onChange={(e) => setNewFormTypeEntry(e.target.value)}
                         className="dynamic-field-input flex-grow"
@@ -333,10 +345,10 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                 )}
             </section>
 
-            {/* --- Dynamic Fields Section --- */}
             <section className="mt-10 pt-6 border-t border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-gray-200">Полета на Формулата</h3>
+                    <button type="button" onClick={addField} className="btn-green text-sm font-semibold"> + Добави Поле </button>
                 </div>
 
                 {fields.length === 0 && <p className="text-gray-500 italic text-center py-4">Все още няма добавени полета.</p>}
@@ -344,7 +356,7 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                 {fields.map((field, fieldIndex) => (
                     <div key={field.id} className="border border-gray-600 rounded-lg p-4 sm:p-5 mb-6 bg-gray-700/20 shadow-lg space-y-4 relative">
                         <button type="button" onClick={() => deleteField(field.id)} className="absolute top-3 right-3 btn-delete" aria-label="Изтрий Поле" title="Изтрий Поле"> × </button>
-                        <p className="text-xs text-gray-500 absolute top-3 left-3">Поле #{fieldIndex + 1}</p>
+                        <p className="text-xs text-gray-500 absolute top-3 left-3 font-semibold">Поле #{fieldIndex + 1}</p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 pt-6">
                             <div>
@@ -368,16 +380,17 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                             <div>
                                 <label htmlFor={`field-pointsType-${field.id}`} className="label-xs">Тип Точки за Разход на Полето</label>
                                 <select id={`field-pointsType-${field.id}`} value={field.pointsType || pointsType} onChange={(e) => updateField(field.id, { pointsType: e.target.value })} className="dynamic-field-input">
-                                    <option value="editingPoints">Editing Points</option> <option value="recordingPoints">Recording Points</option> <option value="designPoints">Design Points</option>
+                                    {availablePointsTypes.map(pt => (
+                                        <option key={pt.value} value={pt.value}>{pt.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor={`field-desc-${field.id}`} className="label-xs">Описание на Полето (показва се на потребителя)</label>
+                                <label htmlFor={`field-desc-${field.id}`} className="label-xs">Описание на Полето (за потребителя)</label>
                                 <input id={`field-desc-${field.id}`} type="text" placeholder="Напр. Добави музика към видеото" value={field.description || ''} onChange={(e) => updateField(field.id, { description: e.target.value })} className="dynamic-field-input" />
                             </div>
                         </div>
 
-                        {/* Associated Custom Form Types for this Field */}
                         {customFormTypes.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-gray-600/50">
                                 <label className="label-xs block mb-2">Приложи Тагове към Това Поле (от дефинираните за формулата):</label>
@@ -400,22 +413,21 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                             </div>
                         )}
 
-                        {/* Pricing Rules Section */}
                         <div className="border-t border-gray-700/50 pt-4 mt-4">
-                            <h4 className="text-sm font-semibold mb-2 text-gray-300">Ценообразуване (в <span className="text-accentLighter">{field.pointsType || 'избрания тип'}</span> точки)</h4>
+                            <h4 className="text-sm font-semibold mb-2 text-gray-300">Ценообразуване (в <span className="text-accentLighter">{availablePointsTypes.find(pt => pt.value === (field.pointsType || pointsType))?.label || field.pointsType}</span> точки)</h4>
                             {(field.type === 'text' || field.type === 'textarea') && (
-                                <div><label className="label-xs">Цена (ако полето е попълнено)</label><input type="number" step="any" placeholder="Точки" value={field.cost ?? ''} onChange={(e) => updateField(field.id, { cost: e.target.value })} className="dynamic-field-input w-full sm:w-32" /></div>
+                                <div><label className="label-xs">Цена (ако полето е попълнено)</label><input type="number" step="any" placeholder="0" value={field.cost ?? ''} onChange={(e) => updateField(field.id, { cost: e.target.value })} className="dynamic-field-input w-full sm:w-32" /></div>
                             )}
                             {field.type === 'number' && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div><label className="label-xs">Цена за единица</label><input type="number" step="any" placeholder="Точки" value={field.cost ?? ''} onChange={(e) => updateField(field.id, { cost: e.target.value })} className="dynamic-field-input" /></div>
+                                    <div><label className="label-xs">Цена за единица</label><input type="number" step="any" placeholder="0" value={field.cost ?? ''} onChange={(e) => updateField(field.id, { cost: e.target.value })} className="dynamic-field-input" /></div>
                                     <div><label className="label-xs">Цена ако е 0 (специална)</label><input type="number" step="any" placeholder="Точки (опц.)" value={field.costIfZero ?? ''} onChange={(e) => updateField(field.id, { costIfZero: e.target.value })} className="dynamic-field-input" title="Цена, ако потребителят въведе 0 в числовото поле." /></div>
                                 </div>
                             )}
                             {(field.type === 'yesno' || field.type === 'checkbox') && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div><label className="label-xs">Цена ако Да / Маркирано</label><input type="number" step="any" placeholder="Точки" value={field.costYes ?? ''} onChange={(e) => updateField(field.id, { costYes: e.target.value })} className="dynamic-field-input" /></div>
-                                    <div><label className="label-xs">Цена ако Не / Немаркирано</label><input type="number" step="any" placeholder="Точки" value={field.costNo ?? ''} onChange={(e) => updateField(field.id, { costNo: e.target.value })} className="dynamic-field-input" /></div>
+                                    <div><label className="label-xs">Цена ако Да / Маркирано</label><input type="number" step="any" placeholder="0" value={field.costYes ?? ''} onChange={(e) => updateField(field.id, { costYes: e.target.value })} className="dynamic-field-input" /></div>
+                                    <div><label className="label-xs">Цена ако Не / Немаркирано</label><input type="number" step="any" placeholder="0" value={field.costNo ?? ''} onChange={(e) => updateField(field.id, { costNo: e.target.value })} className="dynamic-field-input" /></div>
                                 </div>
                             )}
                             {field.type === 'dropdown' && (
@@ -435,14 +447,13 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                             )}
                         </div>
 
-                        {/* Optional: Required Checkbox and Number Attributes */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-gray-700/30 items-center">
                             <div className="flex items-center gap-2">
                                 <input type="checkbox" id={`required-${field.id}`} checked={!!field.required} onChange={(e) => updateField(field.id, { required: e.target.checked })} className="h-4 w-4 text-accent bg-gray-600 border-gray-500 rounded focus:ring-accent focus:ring-offset-gray-800 cursor-pointer" />
                                 <label htmlFor={`required-${field.id}`} className="label-xs !mb-0 text-gray-300 cursor-pointer">Задължително поле</label>
                             </div>
                             {field.type === 'number' && (
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end col-span-full md:col-span-1 mt-3 md:mt-0"> {/* Spans full on small, part on md */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end col-span-full md:col-span-1 mt-3 md:mt-0">
                                     <div><label className="label-xs">Placeholder</label><input type="text" value={field.placeholder || ''} onChange={(e) => updateField(field.id, { placeholder: e.target.value })} className="dynamic-field-input"/></div>
                                     <div><label className="label-xs">Мин.</label><input type="number" value={field.min ?? ''} onChange={(e) => updateField(field.id, { min: e.target.value })} className="dynamic-field-input"/></div>
                                     <div><label className="label-xs">Макс.</label><input type="number" value={field.max ?? ''} onChange={(e) => updateField(field.id, { max: e.target.value })} className="dynamic-field-input"/></div>
@@ -452,9 +463,8 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                         </div>
                     </div>
                 ))}
-                <button type="button" onClick={addField} className="btn-green text-sm font-semibold"> + Добави Поле </button>
+                 <button type="button" onClick={addField} className="btn-green text-sm font-semibold mt-4"> + Добави Още Поле </button>
             </section>
-            {/* --- End Dynamic Fields Section --- */}
 
             <div className="pt-8 mt-10 border-t border-gray-700 text-right">
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-semibold transition text-base shadow-lg">
@@ -474,10 +484,10 @@ const FormulaBuilder = ({ onSubmit, formula }) => {
                     padding-right: 2.5rem; 
                 }
                 .label-xs { @apply block text-xs font-medium text-gray-400 mb-1; }
-                .btn-green { @apply bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition duration-150 text-sm; }
+                .btn-green { @apply bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition duration-150 text-sm; } /* Added -md for consistency */
                 .btn-delete { @apply text-red-500 hover:text-red-400 font-bold text-xl leading-none p-1 rounded-full bg-gray-800/50 hover:bg-gray-700/70 transition; }
-                .btn-delete-xs { @apply text-red-400 hover:text-red-600 text-lg leading-none px-1.5 py-0.5 rounded bg-gray-700 hover:bg-gray-600 transition; } /* Adjusted for better fit */
-                .btn-accent { @apply text-xs bg-accent px-2 py-1 rounded text-white hover:bg-accentLighter transition; }
+                .btn-delete-xs { @apply text-red-400 hover:text-red-600 text-lg leading-none px-1.5 py-1 rounded-sm bg-gray-700 hover:bg-gray-600 transition; } /* Slightly larger touch target */
+                .btn-accent { @apply text-xs bg-accent px-2.5 py-1.5 rounded-md text-white hover:bg-accentLighter transition; } /* Added -md */
             `}</style>
         </form>
     );

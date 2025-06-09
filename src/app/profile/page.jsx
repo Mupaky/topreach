@@ -31,7 +31,7 @@ export default async function UserProfilePage() { // Renamed function for conven
         console.log(`UserProfilePage (Server): Fetching pointsorders for user ID: ${currentUserFromCustomSession.id}`);
         const { data, error } = await supabase
             .from("pointsorders")
-            .select("id, created_at, editingPoints, recordingPoints, designPoints, lifespan, status, price") // Select necessary fields
+            .select("id, created_at, editingPoints, recordingPoints, designPoints, consultingPoints, lifespan, status, price") // Select necessary fields
             .eq("user", currentUserFromCustomSession.id) // Filter by user ID from your custom session
             .order("created_at", { ascending: false });
 

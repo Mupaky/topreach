@@ -1,40 +1,48 @@
+// app/points/page.jsx
 import React from "react";
-import Navbar from "@/components/navbars/Navbar";
 import { getSession } from "@/utils/lib";
 import { redirect } from "next/navigation";
 import Points from "@/pages/Points";
-// import { createClient } from "@/utils/client";
 import { createServerClient } from '@/utils/supabase/server';
 
+export default async function PointsPageServer() { 
+    const supabase = createServerClient(); 
+    const session = await getSession();   
+    let user, packageDefinitionsData = []; 
+    let fetchErrorMsg = null;
 
+    if (!session || !session.user) {
+        console.log("PointsPage (Server): No custom session, redirecting to /login.");
+        redirect("/login");
+    }
 
-export default async function page() {
-	const supabase = createServerClient();
-	const session = await getSession();
-	let user, data;
+    user = session.user;
 
-	if (!session) {
-		redirect("/");
-	} else {
-		user = session.user;
+    try {
+        const { data, error } = await supabase
+            .from("pointsPackages") 
+            .select("id, price, editingPoints, recordingPoints, designPoints, consultingPoints, lifespan")
+            .order("price", { ascending: true }); 
+        if (error) {
+            throw error;
+        }
+        packageDefinitionsData = data || [];
+        console.log("PointsPage (Server): Fetched pointsPackages definitions:", packageDefinitionsData);
 
-		const { data: packagesData, error: fetchError } = await supabase
-			.from("pointsPackages")
-			.select();
-		console.log("Fetched pointsPackages:", packagesData);
+    } catch (err) {
+        console.error("PointsPage (Server): Error fetching points packages definitions:", err.message);
+        fetchErrorMsg = `Грешка при зареждане на пакетите: ${err.message}`;
+    }
 
-		if (fetchError) {
-			throw new Error(
-				`Failed to fetch points packages: ${fetchError.message}`
-			);
-		}
-
-		data = packagesData;
-	}
-
-	return (
-		<>
-			<Points data={data} email={user.email} name={user.fullName} userId={user.id} />
-		</>
-	);
+    return (
+        <>
+            <Points
+                data={packageDefinitionsData} 
+                email={user.email}
+                name={user.fullName}
+                userId={user.id} 
+                fetchError={fetchErrorMsg} 
+            />
+        </>
+    );
 }

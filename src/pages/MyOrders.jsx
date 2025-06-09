@@ -1,26 +1,24 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react"; // Added useMemo
-import { createClient } from "@/utils/client"; // Your client-side Supabase instance
-import { ChevronDown, ChevronUp } from "lucide-react"; // For expand/collapse icons
-import { BeatLoader } from "react-spinners"; // For loading state
+import { useEffect, useState, useMemo } from "react";
+import { createClient } from "@/utils/client"; 
+import { ChevronDown, ChevronUp } from "lucide-react"; 
+import { BeatLoader } from "react-spinners"; 
 import Link from "next/link";
 
 const supabase = createClient();
 
-export default function MyOrders({ userId }) { // userId is passed as a prop
+export default function MyOrders({ userId }) { 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // For fetch errors
+  const [error, setError] = useState(null); 
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [isClientMounted, setIsClientMounted] = useState(false);
 
-  // For displaying Bulgarian labels for point types
   const pointTypeLabels = useMemo(() => ({
     editingPoints: "Монтаж",
     recordingPoints: "Заснемане",
     designPoints: "Дизайн"
-    // Add more if you have other point types
   }), []);
 
 
@@ -31,19 +29,18 @@ export default function MyOrders({ userId }) { // userId is passed as a prop
   useEffect(() => {
     async function fetchOrders() {
       if (!userId) {
-        setLoading(false); // Stop loading if no userId
+        setLoading(false); 
         return;
       }
 
       setLoading(true);
-      setError(null); // Clear previous errors
+      setError(null); 
 
       try {
-        // Fetch orders including points_cost_breakdown and order_details
         const { data, error: fetchError } = await supabase
           .from("formulaorders")
           .select("id, created_at, formula_name_used, status, order_details, points_cost_breakdown, total_points_cost, points_type_charged") // Select all relevant fields
-          .eq("user_id", userId) // Ensure this column name matches your formulaorders table
+          .eq("user_id", userId) 
           .order("created_at", { ascending: false });
 
         if (fetchError) {
@@ -63,10 +60,10 @@ export default function MyOrders({ userId }) { // userId is passed as a prop
       }
     }
 
-    if (isClientMounted) { // Only fetch after component has mounted
+    if (isClientMounted) { 
         fetchOrders();
     }
-  }, [userId, isClientMounted]); // Re-fetch if userId changes or on mount
+  }, [userId, isClientMounted]); 
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -104,7 +101,7 @@ export default function MyOrders({ userId }) { // userId is passed as a prop
       );
   }
   
-  if (!userId) { // Should be handled by parent page ideally, but as a fallback
+  if (!userId) { 
     return (
         <div className="min-h-screen bg-background text-white py-20 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto text-center">
@@ -115,8 +112,8 @@ export default function MyOrders({ userId }) { // userId is passed as a prop
   }
 
   return (
-    <div className="min-h-screen bg-background text-white py-24 md:py-32 px-4 sm:px-6 lg:px-8"> {/* Changed bg-gray-900 to bg-background */}
-      <div className="max-w-3xl mx-auto"> {/* Adjusted max-width for better focus */}
+    <div className="min-h-screen bg-background text-white py-24 md:py-32 px-4 sm:px-6 lg:px-8"> 
+      <div className="max-w-3xl mx-auto"> 
         <div className="text-center mb-10 md:mb-12">
             <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent">
                 Моите Поръчки

@@ -1,148 +1,103 @@
+// app/api/createOrder/route.js
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/utils/supabase/server";
-
-const supabase = createServerClient ();
-
-
+import { createServerClient } from "@/utils/supabase/server"; 
+import { getSession } from "@/utils/lib"; 
 export async function POST(req) {
-    const body = await req.json();
+    const supabase = createServerClient();
+    const customSession  = await getSession();
 
-    async function deductPointsFromPackages(userId, pointType, amountToDeduct) {
-        if (!["editingPoints", "recordingPoints", "designPoints"].includes(pointType)) {
-            throw new Error(`Невалиден тип точки: ${pointType}`);
-        }
-
-        // Fetch all user's packages
-        const { data: pointPackages, error } = await supabase
-            .from("pointsorders")
-            .select("*")
-            .eq("user", userId);
-
-        if (error || !pointPackages) {
-            throw new Error("Неуспешно извличане на точковите пакети.");
-        }
-
-        const now = new Date();
-
-        // Filter for valid and active packages and sort by soonest expiring
-        const sortedPackages = pointPackages
-            .map(pkg => {
-                const createdAt = new Date(pkg.created_at);
-                const expiration = new Date(createdAt.getTime() + pkg.lifespan * 24 * 60 * 60 * 1000);
-                return { ...pkg, expiration };
-            })
-            .filter(pkg => pkg.expiration > now && pkg[pointType] > 0)
-            .sort((a, b) => a.expiration - b.expiration);
-
-        let remaining = amountToDeduct;
-
-        for (const pkg of sortedPackages) {
-            if (remaining <= 0) break;
-
-            const available = pkg[pointType];
-            const toUse = Math.min(remaining, available);
-            const newValue = available - toUse;
-
-            const { error: updateError } = await supabase
-                .from("pointsorders")
-                .update({ [pointType]: newValue })
-                .eq("id", pkg.id);
-
-            if (updateError) {
-                throw new Error(`Грешка при обновяване на пакет: ${updateError.message}`);
-            }
-
-            remaining -= toUse;
-        }
-
-        if (remaining > 0) {
-            throw new Error(`Недостатъчно точки за ${pointType}. Нужни: ${amountToDeduct}`);
-        }
+    if (!customSession || !customSession.user || !customSession.user.id) {
+        console.error("API spend-points: No custom session or user ID missing.");
+        return NextResponse.json({ message: "Authentication required or session invalid." }, { status: 401 });
     }
+    const requesterSupabaseId = customSession.user.id;
+    const loggedInUserRole = customSession.user.role;
 
-    const pointTypeMap = {
-		vlog: "editingPoints",
-		tiktok: "editingPoints",
-		recording: "recordingPoints",
-		thumbnail: "designPoints"
-	};
-    
 
-    if (body.type === "points") {
-        if (!body.userId) {
-        return NextResponse.json(
-            { message: "Липсва userId за точковата поръчка." },
-            { status: 400 }
-        );
-    }
+    try {
+        const body = await req.json();
+        const {
+            userId,
+            price,
+            editingPoints,
+            recordingPoints,
+            designPoints,
+            consultingPoints, 
+            lifespan,
+            status = "Чака плащане", 
+        } = body;
 
-        body.user = body.userId;
-		delete body.userId;
-		delete body.type;
-        delete body.email;
+        if (requesterSupabaseId !== userId && loggedInUserRole !== 'admin') {
+            console.warn(`API /createOrder: Requester ${requesterSupabaseId} trying to buy for ${userId}. Forbidden.`);
+            return NextResponse.json({ message: "You can only purchase packages for yourself." }, { status: 403 });
+        }
 
-		if (!body.lifespan || isNaN(parseInt(body.lifespan))) {
-			return NextResponse.json(
-				{ message: "Missing or invalid lifespan for points package." },
-				{ status: 400 }
-			);
-		}
+        if (userId === undefined || price === undefined || 
+            editingPoints === undefined || recordingPoints === undefined || 
+            designPoints === undefined || consultingPoints === undefined || 
+            lifespan === undefined) {
+            return NextResponse.json(
+                { message: "Missing required fields for points order creation." },
+                { status: 400 }
+            );
+        }
 
-		body.lifespan = parseInt(body.lifespan, 10);
-
-        //Add info to description field
         const descParts = [];
+        if (editingPoints > 0) descParts.push(`Видео монтаж: ${editingPoints}т.`);
+        if (recordingPoints > 0) descParts.push(`Видео заснемане: ${recordingPoints}т.`);
+        if (designPoints > 0) descParts.push(`Дизайн: ${designPoints}т.`);
+        if (consultingPoints > 0) descParts.push(`Консултации: ${consultingPoints}т.`);
+        if (price) descParts.push(`Цена: ${price}лв.`);
+        if (lifespan) descParts.push(`Валидност: ${lifespan} дни.`);
+        const autoDescription = descParts.length > 0 ? descParts.join(" | ") : "Закупуване на пакет точки";
 
-        if (body.editingPoints) descParts.push(`Видео монтаж: ${body.editingPoints}т`);
-        if (body.recordingPoints) descParts.push(`Видео заснемане: ${body.recordingPoints}т`);
-        if (body.designPoints) descParts.push(`Дизайн: ${body.designPoints}т`);
-        if (body.price) descParts.push(`Цена: ${body.price}лв`);
-        if (body.lifespan) descParts.push(`Валидност: ${body.lifespan} дни`);
-        body.description = descParts.join(" | ");
 
-		const { error } = await supabase.from("pointsorders").insert(body);
+        const orderToInsert = {
+            user: userId,
+            price: parseFloat(price) || 0,
+            editingPoints: parseInt(editingPoints, 10) || 0,
+            recordingPoints: parseInt(recordingPoints, 10) || 0,
+            designPoints: parseInt(designPoints, 10) || 0,
+            consultingPoints: parseInt(consultingPoints, 10) || 0,
+            lifespan: parseInt(lifespan, 10),
+            status: status,
+            description: autoDescription,
+        };
 
-		if (error) {
-            console.error("❌ Error inserting pointsorder:", error); // ⬅️ Log it
-			return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-		}
-        console.log("✅ Successfully inserted pointsorder", body); // ⬅️ Add success log too
-	} else {
-		const pointType = pointTypeMap[body.type];
+        console.log("API /createOrder: Attempting to insert pointsorder:", JSON.stringify(orderToInsert, null, 2));
 
-		if (!pointType) {
-			return NextResponse.json({ message: "Невалиден тип поръчка." }, { status: 400 });
-		}
+        const { data: newPointsOrder, error: insertError } = await supabase
+            .from("pointsorders")
+            .insert([orderToInsert])
+            .select("id, user, price, status, created_at, editingPoints, recordingPoints, designPoints, consultingPoints, lifespan") // Select all relevant fields
+            .single();
 
-		try {
-			await deductPointsFromPackages(body.userId, pointType, body.price);
-		} catch (err) {
-			return NextResponse.json({ message: err.message }, { status: 400 });
-		}
-
-		const tableMap = {
-			vlog: "vlogOrders",
-			tiktok: "tiktokOrders",
-			recording: "recordings",
-			thumbnail: "thumbnailOrders"
-		};
-
-		const tableName = tableMap[body.type];
-        body.user = body.userId;
-        delete body.userId;
-		delete body.type;
-
-        // if there is need to initialize more field add them below
-        if (!body.status) {
-            body.status = "Приета";
+        if (insertError) {
+            console.error("API /createOrder - Supabase Insert error:", JSON.stringify(insertError, null, 2));
+            if (insertError.code === '42501' || insertError.message?.includes('violates row-level security policy')) {
+                return NextResponse.json({ message: "RLS: Забранено създаването на тази поръчка.", details: insertError.message }, { status: 403 });
+            }
+            return NextResponse.json(
+                { message: "База данни: " + insertError.message, details: insertError.details },
+                { status: 500 }
+            );
+        }
+        if (!newPointsOrder) {
+            console.error("API /createOrder - No data returned after pointsorder insert (unexpected).");
+            return NextResponse.json({ message: "Неуспешно извличане на създадената поръчка." }, { status: 500 });
         }
 
-		const { error } = await supabase.from(tableName).insert(body);
+        console.log("API /createOrder: Points order created successfully:", newPointsOrder.id);
+        return NextResponse.json(
+            { message: "Поръчката за точки е създадена успешно!", order: newPointsOrder },
+            { status: 201 }
+        );
 
-		if (error) {
-			return NextResponse.json({ message: `Error: ${error.message}` }, { status: 500 });
-		}
-	}
-
-	return NextResponse.json({ message: "Поръчката беше регистрирана." });
+    } catch (error) {
+        console.error("API /createOrder - Catch block error:", error);
+        if (error instanceof SyntaxError) {
+            return NextResponse.json({ message: "Невалидно тяло на заявката (JSON)." }, { status: 400 });
+        }
+        return NextResponse.json({ message: "Сървърна грешка при създаване на поръчка.", error: error.message }, { status: 500 });
+    }
 }

@@ -1,266 +1,216 @@
+// src/pages/Home.jsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Transition from "@/components/others/Transition";
 import PointsCard from "@/components/cards/PointsCard";
 import Button from "@/components/others/Button";
+import { Button as ShadButton } from "@/components/ui/button";
 import MaxWidthWrapper from "@/components/others/MaxWidthWrapper";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-	faFilm,
-	faVideo,
-	faPenNib,
-	faCoins,
+    faFilm, faVideoCamera, faImage, faMobileScreenButton, // More specific icons
+    faLightbulb, // For Consulting/Strategy
+    faTools, // For general editing/production
+    faChartLine, // For growth/results
+    faBullhorn, // For marketing/ads
+    faPlusCircle,
+    faBoxOpen,
+    faBrain // Keep for consulting points balance
 } from "@fortawesome/free-solid-svg-icons";
-import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import Link from "next/link";
+import { BeatLoader } from "react-spinners";
 
-export default function Home({ user, orders }) {
-	const [editingPoints, setEditingPoints] = useState(0);
-	const [recordingPoints, setRecordingPoints] = useState(0);
-	const [designPoints, setDesignPoints] = useState(0);
-	const firstName = user?.fullName?.split(" ")[0] || "Потребител";
+export default function Home({ user }) {
+    const [editingPoints, setEditingPoints] = useState(0);
+    const [recordingPoints, setRecordingPoints] = useState(0);
+    const [designPoints, setDesignPoints] = useState(0);
+    const [consultingPoints, setConsultingPoints] = useState(0);
+    const [isFetchingPoints, setIsFetchingPoints] = useState(true);
 
-	useEffect(() => {
+    const firstName = user?.fullName?.split(" ")[0] || "Потребител";
 
+    useEffect(() => {
         async function fetchPointsForType(userId, type) {
             try {
                 const response = await fetch(`/api/activePoints?userId=${userId}&type=${type}`);
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`[Home Component] API Error for ${type} (status ${response.status}):`, errorText);
-                    return { total: 0 };
+                    const errorText = await response.text(); console.error(`[Home] API Error ${type}:`, errorText); return { total: 0 };
                 }
-                const data = await response.json();
-                return data; 
-            } catch (err) {
-                return { total: 0 };
-            }
+                return await response.json();
+            } catch (err) { console.error(`[Home] Catch Error ${type}:`, err); return { total: 0 }; }
         }
-
         async function loadAllPoints() {
             if (!user?.id) {
-                setEditingPoints(0); 
-                setRecordingPoints(0);
-                setDesignPoints(0);
-                return;
+                setEditingPoints(0); setRecordingPoints(0); setDesignPoints(0); setConsultingPoints(0);
+                setIsFetchingPoints(false); return;
             }
-
-            const editingData = await fetchPointsForType(user.id, 'editingPoints');
-            const recordingData = await fetchPointsForType(user.id, 'recordingPoints');
-            const designData = await fetchPointsForType(user.id, 'designPoints');
-
-            setEditingPoints(editingData.total || 0);
-            setRecordingPoints(recordingData.total || 0);
-            setDesignPoints(designData.total || 0);
+            setIsFetchingPoints(true);
+            const types = ['editingPoints', 'recordingPoints', 'designPoints', 'consultingPoints'];
+            try {
+                const results = await Promise.all(types.map(type => fetchPointsForType(user.id, type)));
+                setEditingPoints(results[0]?.total || 0);
+                setRecordingPoints(results[1]?.total || 0);
+                setDesignPoints(results[2]?.total || 0);
+                setConsultingPoints(results[3]?.total || 0);
+            } catch (err) {
+                console.error("❌ [Home] Error in loadAllPoints:", err);
+                setEditingPoints(0); setRecordingPoints(0); setDesignPoints(0); setConsultingPoints(0);
+            } finally { setIsFetchingPoints(false); }
         }
+        if (user?.id) { loadAllPoints(); } else { setIsFetchingPoints(false); }
+    }, [user?.id]);
 
-        loadAllPoints();
+    const serviceCategories = [
+        {
+            title: "Професионално Видео Заснемане",
+            description: "От идея до реализация, нашият екип ще заснеме вашето събитие, продукт или влог с най-високо качество. Гъвкави слотове и опции за локация.",
+            icon: faVideoCamera,
+            link: "/formulas", // Example link
+            linkText: "Резервирай Заснемане"
+        },
+        {
+            title: "Видео Монтаж от Експерти",
+            description: "Превърнете суровите си кадри във въздействащо видео. Предлагаме детайлна обработка, ефекти, цветови корекции и адаптиране за всяка платформа.",
+            icon: faTools, // Or faFilm / faMagic
+            link: "/formulas?category=editing", // Example link to formula page filtered for editing
+            linkText: "Към Услугите за Монтаж"
+        },
+        {
+            title: "Дизайн на Thumbnails & Графики",
+            description: "Привлечете повече кликове с уникални и професионално изработени thumbnails. Предлагаме стандартни, премиум и A/B тестови варианти.",
+            icon: faImage, // Or faPenNib
+            link: "/formulas?category=design", // Example link
+            linkText: "Дизайнерски Услуги"
+        },
+        {
+            title: "TikTok & Shorts Видеа",
+            description: "Създайте ангажиращо съдържание за къси формати. От базови субтитри до сложни видеа с motion graphics, които грабват вниманието.",
+            icon: faMobileScreenButton, // More specific than faTiktok from brands
+            link: "/formulas?category=tiktok", // Example link
+            linkText: "Създай TikTok Видео"
+        },
+        {
+            title: "Стратегически Консултации",
+            description: "Нуждаете се от насоки за вашето видео съдържание? Възползвайте се от нашия опит за стратегия, оптимизация и растеж на вашия канал.",
+            icon: faLightbulb, // Or faBrain
+            link: "/formulas?category=consulting", // Example link
+            linkText: "Заяви Консултация"
+        }
+    ];
 
-    }, [user?.id]); // Dependency array
-
-	function formatDate(dateString) {
-		const date = new Date(dateString);
-		const day = String(date.getDate()).padStart(2, "0");
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const year = date.getFullYear();
-		return `${day}.${month}.${year}`;
-	}
-
-	const allOrders = orders
-		? Object.entries(orders)
-				.flatMap(([orderType, orderArray]) =>
-					orderArray.map((order) => ({ ...order, orderType }))
-				)
-				.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-		: [];
-
-	const hasOrders = allOrders.length > 0;
-
-	const icons = {
-		vlogOrders: (
-			<FontAwesomeIcon
-				className="p-2 border rounded-lg border-accentLighter/40 text-accentLighter/90 bg-secondary/50"
-				icon={faFilm}
-			/>
-		),
-		tiktokOrders: (
-			<FontAwesomeIcon
-				className="p-2 border rounded-lg border-accentLighter/40 text-accentLighter/90 bg-secondary/50"
-				icon={faTiktok}
-			/>
-		),
-		recordingOrders: (
-			<FontAwesomeIcon
-				className="p-2 border rounded-lg border-accentLighter/40 text-accentLighter/90 bg-secondary/50"
-				icon={faVideo}
-			/>
-		),
-		thumbnailOrders: (
-			<FontAwesomeIcon
-				className="p-2 border rounded-lg border-accentLighter/40 text-accentLighter/90 bg-secondary/50"
-				icon={faPenNib}
-			/>
-		),
-	};
-
-	return (
-		<>
-		
-			{user && (
-				<Transition delay={0.2}>
-					<section className="min-h-screen overflow-hidden pb-10">
-						<MaxWidthWrapper>
-							<div className="mt-32 grid grid-cols-1 xl:grid-cols-2 gap-7 items-stretch">
-								<div className="flex flex-col">
-									{user.role == "admin" ? (
-										<div className="flex justify-start mb-6">
-										<Link href="/admin/formulas">
-											<button className="px-4 py-2 bg-accent hover:bg-accentLighter text-white rounded-full shadow transition">
-												Admin Dashboard
-											</button>
-										</Link>
-										</div>
-									) : false}
-									<h2 className="font-[700] text-xl md:text-4xl bg-gradient-to-b from-foreground to-neutral-400 bg-clip-text text-transparent">
-										{firstName &&
-											`Здравейте отновно, ${firstName}!`}
-									</h2>
-
-									<div className="mt-5 w-full grid grid-cols-2 gap-2 md:gap-7">
-										{editingPoints ? (
-											<Transition delay={0.2}>
-												<PointsCard
-													points={editingPoints}
-													text="Видео монтаж"
-												/>
-											</Transition>
-										) : (
-											<Transition delay={0.2}>
-												<PointsCard
-													points={0}
-													text="Видео монтаж"
-												/>
-											</Transition>
-										)}
-
-										{recordingPoints ? (
-											<Transition delay={0.35}>
-												<PointsCard
-													points={recordingPoints}
-													text="Видео заснемане"
-												/>
-											</Transition>
-										) : (
-											<Transition delay={0.35}>
-												<PointsCard
-													points={0}
-													text="Видео заснемане"
-												/>
-											</Transition>
-										)}
-
-										<div className="col-span-2 md:col-span-1">
-											{designPoints ? (
-												<Transition delay={0.5}>
-													<PointsCard
-														points={designPoints}
-														text="Дизайн"
-													/>
-												</Transition>
-											) : (
-												<Transition delay={0.5}>
-													<PointsCard
-														points={0}
-														text="Дизайн"
-													/>
-												</Transition>
-											)}
-										</div>
-
-										<div className="col-span-2 md:hidden">
-											<Button
-												text="Купи точки"
-												link="/points"
-											/>
-										</div>
-
-										<Transition delay={0.65}>
-											<div className="border border-secondary bg-background text-foreground rounded-3xl md:rounded-[30px] w-full h-48 p-5 hidden md:flex flex-col justify-between">
-												<div className="w-10 h-10 absolute top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 bg-gradient-to-br from-accent to-accentLighter blur-[50px] filter rounded-full" />
-
-												<p className="text-neutral-300 font-[600]">
-													Не позволявай на лимитите да
-													те спрат. Вземи още точки и
-													продължи напред!
-												</p>
-												<Button
-													text="Купи точки"
-													link="/points"
-												/>
-											</div>
-										</Transition>
-									</div>
-									<Link href="/my-orders" className="block px-4 py-2 hover:bg-gray-700">📦 Моите поръчки</Link>
-								</div>
-
-								
+    const pointsData = [
+        { points: editingPoints, text: "Видео монтаж", icon: faFilm, delay: 0.2 },
+        { points: recordingPoints, text: "Видео заснемане", icon: faVideoCamera, delay: 0.3 },
+        { points: designPoints, text: "Дизайн", icon: faImage, delay: 0.4 },
+        { points: consultingPoints, text: "Консултации", icon: faBrain, delay: 0.5 },
+    ];
 
 
-								<div className="relative flex flex-col xl:col-span-2 min-h-96">
-									<h2 className="font-[700] text-3xl md:text-4xl bg-gradient-to-b from-foreground to-neutral-400 bg-clip-text text-transparent">
-										Поръчки (точки)
-									</h2>
+    return (
+        <>
+            {user && (
+                <Transition delay={0.1} blur={0}>
+                    <section className="min-h-screen bg-background text-foreground overflow-hidden pb-16 pt-28 md:pt-36">
+                        <MaxWidthWrapper className="space-y-12 md:space-y-20">
 
-									<div className="border bg-background/70 backdrop-blur-sm border-secondary w-full max-h-[26rem] overflow-scroll mt-5 rounded-[30px] px-4 py-5 md:p-5 flex-1">
-										{orders.pointsOrders &&
-										orders.pointsOrders.length > 0 ? (
-											<div className="flex flex-col gap-5">
-												{orders.pointsOrders.map(
-													(order, index) => (
-														<Link
-															key={index}
-															href={`/pointsOrders/${order.id}`}
-														>
-															<div className="flex justify-between text-sm md:text-base items-center transition-all hover:opacity-80">
-																<div className="flex gap-2 md:gap-5 items-center">
-																	<FontAwesomeIcon
-																		className="p-2 border rounded-lg border-accentLighter/40 text-accentLighter/90 bg-secondary/50"
-																		icon={
-																			faCoins
-																		}
-																	/>
-																	<p>
-																		{formatDate(
-																			order.created_at
-																		)}
-																	</p>
-																	<p>
-																		{
-																			order.status
-																		}
-																	</p>
-																</div>
-																<p>
-																	Цена:{" "}
-																	{
-																		order.price
-																	}{" "}
-																	лв.
-																</p>
-															</div>
-														</Link>
-													)
-												)}
-											</div>
-										) : (
-											<p className="font-[600] text-neutral-400 w-max mx-auto">
-												Няма направени поръчки
-											</p>
-										)}
-									</div>
-								</div>
-							</div>
+                            {/* Hero/Welcome Section */}
+                            <div className="text-center space-y-3 relative">
+                                <div className="w-full h-80 md:h-96 absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 bg-gradient-to-br from-accent/50 via-background to-background blur-[120px] filter rounded-full -z-10 opacity-70" />
+                                {user.role === "admin" && (
+                                    <div className="mb-8">
+                                        <Link href="/admin/formulas">
+                                            <ShadButton variant="default" className="bg-accent hover:bg-accentLighter text-white rounded-full shadow-lg transition-colors duration-300 px-8 py-3 text-base font-semibold">
+                                                Админ Панел
+                                            </ShadButton>
+                                        </Link>
+                                    </div>
+                                )}
+                                <h1 className="font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
+                                    {firstName ? `Здравейте, ${firstName}!` : "Добре дошли в TopReach!"}
+                                </h1>
+                                <p className="text-neutral-400 text-lg md:text-xl max-w-2xl mx-auto">
+                                    Ние превръщаме вашите идеи във въздействащи видеа, които разширяват аудиторията и увеличават продажбите.
+                                </p>
+                            </div>
+
+                            {/* Points Balances Section */}
+                            <div className="w-full">
+                                <h2 className="text-2xl sm:text-3xl font-semibold text-gray-100 mb-6 text-center sm:text-left">Вашият Баланс Точки</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                                    {pointsData.map((pData) => (
+                                        <Transition key={pData.text} delay={pData.delay}>
+                                            <PointsCard
+                                                points={isFetchingPoints ? <BeatLoader size={10} color="#8B5CF6"/> : pData.points}
+                                                text={pData.text}
+                                                icon={pData.icon}
+                                            />
+                                        </Transition>
+                                    ))}
+                                </div>
+                                <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+                                     <Link href="/points">
+                                        <ShadButton size="lg" className="bg-accent hover:bg-accentLighter text-white font-semibold px-8 py-3 text-base rounded-lg shadow-lg w-full sm:w-auto">
+                                            <FontAwesomeIcon icon={faPlusCircle} className="mr-2" /> Купи още Точки
+                                        </ShadButton>
+                                    </Link>
+                                    <Link href="/my-orders">
+                                        <ShadButton variant="outline" size="lg" className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500 font-semibold px-8 py-3 text-base rounded-lg w-full sm:w-auto">
+                                            <FontAwesomeIcon icon={faBoxOpen} className="mr-2" /> Моите Поръчки
+                                        </ShadButton>
+                                    </Link>
+                                </div>
+                            </div>
+
+                            {/* Services Overview Section */}
+                            <div className="pt-10 border-t border-gray-700/50">
+                                <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-100 mb-10 md:mb-12">
+                                    Нашите Услуги
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                                    {serviceCategories.slice(0, 3).map((service, index) => ( // Show first 3 prominently
+                                        <Transition key={service.title} delay={0.2 + index * 0.1}>
+                                            <div className="bg-gray-800/70 backdrop-blur-sm border border-secondary p-6 rounded-xl shadow-xl hover:shadow-accent/20 transition-shadow duration-300 flex flex-col h-full">
+                                                <FontAwesomeIcon icon={service.icon} className="text-accent text-3xl mb-4" />
+                                                <h3 className="text-xl font-semibold text-white mb-2">{service.title}</h3>
+                                                <p className="text-sm text-neutral-400 flex-grow mb-4">{service.description}</p>
+                                                <Link href={service.link || "/formulas"} className="mt-auto">
+                                                    <ShadButton variant="outline" className="w-full border-accent/70 text-accentLighter hover:bg-accent/10 hover:text-accent">
+                                                        {service.linkText || "Научи повече"}
+                                                    </ShadButton>
+                                                </Link>
+                                            </div>
+                                        </Transition>
+                                    ))}
+                                </div>
+                                {/* Link to all services if more than 3 */}
+                                {serviceCategories.length > 3 && (
+                                     <div className="text-center mt-10">
+                                        <Link href="/formulas"> {/* You'll need a /services page */}
+                                            <ShadButton size="lg" className="bg-transparent border-2 border-accent text-accentLighter hover:bg-accent hover:text-white transition-all font-semibold px-10 py-3">
+                                                Разгледай Всички Услуги
+                                            </ShadButton>
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                            <Transition delay={0.7}>
+                                <div className="mt-12 text-center border-t border-gray-700/30 pt-12">
+                                    <FontAwesomeIcon icon={faChartLine} className="text-accent text-4xl mb-4" />
+                                    <h3 className="text-2xl font-semibold text-white mb-2">
+                                        Готов ли си да достигнеш нови върхове?
+                                    </h3>
+                                    <p className="text-neutral-400 max-w-lg mx-auto mb-6">
+                                        Ние сме тук, за да ти помогнем да създадеш видео съдържание, което ангажира, вдъхновява и продава.
+                                    </p>
+                                    <Link href="/formulas">
+                                        <ShadButton size="lg" className="bg-accent hover:bg-accentLighter text-white font-bold px-10 py-3 text-lg rounded-lg shadow-xl">
+                                            Започни Проект Сега
+                                        </ShadButton>
+                                    </Link>
+                                </div>
+                            </Transition>
+
 						</MaxWidthWrapper>
 					</section>
 				</Transition>
